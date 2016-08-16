@@ -92,7 +92,7 @@ void loadPayload(u32 pressed)
 
     DIR dir;
     FILINFO info;
-    char path[28] = "/luma/payloads";
+    char path[28] = "/puma/payloads";
 
     FRESULT result = f_findfirst(&dir, &info, path, pattern);
 

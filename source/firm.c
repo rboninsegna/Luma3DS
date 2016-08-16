@@ -63,7 +63,7 @@ void main(void)
     //Mount filesystems. CTRNAND will be mounted only if/when needed
     mountFs();
 
-    const char configPath[] = "/luma/config.bin";
+    const char configPath[] = "/puma/config.bin";
 
     //Attempt to read the configuration file
     needConfig = fileRead(&config, configPath) ? MODIFY_CONFIGURATION : CREATE_CONFIGURATION;

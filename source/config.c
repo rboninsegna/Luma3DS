@@ -199,7 +199,7 @@ void configureCFW(const char *configPath)
 
     if(!fileWrite(&config, configPath, 4))
     {
-        createDirectory("luma");
+        createDirectory("puma");
         if(!fileWrite(&config, configPath, 4))
             error("Error writing the configuration file");
     }
