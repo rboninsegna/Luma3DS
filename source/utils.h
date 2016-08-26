@@ -30,6 +30,6 @@
 
 u32 waitInput(void);
 void mcuReboot(void);
+void mcuPowerOff(void);
 void chrono(u32 seconds);
-void stopChrono(void);
 void error(const char *message);

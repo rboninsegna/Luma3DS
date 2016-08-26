@@ -32,7 +32,10 @@
 #include "draw.h"
 #include "screen.h"
 #include "buttons.h"
+#include "pin.h"
 #include "../build/injector.h"
+
+extern u16 launchedFirmTIDLow[8]; //defined in start.s
 
 static firmHeader *const firm = (firmHeader *)0x24000000;
 static const firmSectionHeader *section;
@@ -40,18 +43,16 @@ static const firmSectionHeader *section;
 u32 config,
     emuOffset;
 
-bool isN3DS;
+bool isN3DS, isDevUnit, isFirmlaunch;
 
 FirmwareSource firmSource;
 
 void main(void)
 {
-    bool isFirmlaunch,
-         isA9lh;
+    bool isA9lh;
 
     u32 newConfig,
-        emuHeader,
-        nbChronoStarted = 0;
+        emuHeader;
 
     FirmwareType firmType;
     FirmwareSource nandType;
@@ -59,6 +60,9 @@ void main(void)
 
     //Detect the console being used
     isN3DS = PDN_MPCORE_CFG == 7;
+
+    //Detect dev units
+    isDevUnit = CFG_UNITINFO != 0;
 
     //Mount filesystems. CTRNAND will be mounted only if/when needed
     mountFs();
@@ -69,14 +73,14 @@ void main(void)
     needConfig = fileRead(&config, configPath) ? MODIFY_CONFIGURATION : CREATE_CONFIGURATION;
 
     //Determine if this is a firmlaunch boot
-    if(*(vu8 *)0x23F00005)
+    if(launchedFirmTIDLow[5] != 0)
     {
         if(needConfig == CREATE_CONFIGURATION) mcuReboot();
 
         isFirmlaunch = true;
 
         //'0' = NATIVE_FIRM, '1' = TWL_FIRM, '2' = AGB_FIRM
-        firmType = *(vu8 *)0x23F00009 == '3' ? SAFE_FIRM : (FirmwareType)(*(vu8 *)0x23F00005 - '0');
+        firmType = launchedFirmTIDLow[7] == u'3' ? SAFE_FIRM : (FirmwareType)(launchedFirmTIDLow[5] - u'0');
 
         nandType = (FirmwareSource)BOOTCONFIG(0, 3);
         firmSource = (FirmwareSource)BOOTCONFIG(2, 1);
@@ -122,62 +126,67 @@ void main(void)
             }
         }
 
-        //If no configuration file exists or SELECT is held, load configuration menu
-        if(needConfig == CREATE_CONFIGURATION || ((pressed & BUTTON_SELECT) && !(pressed & BUTTON_L1)))
-        {
-            configureCFW(configPath);
-
-            //Zero the last booted FIRM flag
-            CFG_BOOTENV = 0;
-
-            nbChronoStarted = 1;
-            chrono(0);
-            chrono(2);
-
-            //Update pressed buttons
-            pressed = HID_PAD;
-        }
-
-        if(isA9lh && !CFG_BOOTENV && pressed == SAFE_MODE)
-        {
-            nandType = FIRMWARE_SYSNAND;
-            firmSource = FIRMWARE_SYSNAND;
-            needConfig = DONT_CONFIGURE;
-        }
-
         //Boot options aren't being forced
         if(needConfig != DONT_CONFIGURE)
         {
-            /* If L and R/A/Select or one of the single payload buttons are pressed,
-               chainload an external payload */
-            if((pressed & SINGLE_PAYLOAD_BUTTONS) || ((pressed & BUTTON_L1) && (pressed & L_PAYLOAD_BUTTONS)))
-                loadPayload(pressed);
+            PINData pin;
 
-            //If screens are inited or the corresponding option is set, load splash screen
-            if((PDN_GPU_CNT != 1 || CONFIG(6)) && loadSplash())
+            bool pinExists = CONFIG(7) && readPin(&pin);
+
+            //If we get here we should check the PIN (if it exists) in all cases
+            if(pinExists) verifyPin(&pin);
+
+            //If no configuration file exists or SELECT is held, load configuration menu
+            bool shouldLoadConfigurationMenu = needConfig == CREATE_CONFIGURATION || ((pressed & BUTTON_SELECT) && !(pressed & BUTTON_L1));
+
+            if(shouldLoadConfigurationMenu)
             {
-                nbChronoStarted = 2;
-                chrono(0);
+                configureCFW(configPath);
+
+                if(!pinExists && CONFIG(7)) newPin();
+
+                chrono(2);
+
+                //Update pressed buttons
+                pressed = HID_PAD;
             }
 
-            //If R is pressed, boot the non-updated NAND with the FIRM of the opposite one
-            if(pressed & BUTTON_R1)
+            if(isA9lh && !CFG_BOOTENV && pressed == SAFE_MODE)
             {
-                nandType = (useSysAsDefault) ? FIRMWARE_EMUNAND : FIRMWARE_SYSNAND;
-                firmSource = (useSysAsDefault) ? FIRMWARE_SYSNAND : FIRMWARE_EMUNAND;
+                nandType = FIRMWARE_SYSNAND;
+                firmSource = FIRMWARE_SYSNAND;
             }
-
-            /* Else, boot the NAND the user set to autoboot or the opposite one, depending on L,
-               with their own FIRM */
             else
             {
-                nandType = (CONFIG(0) != !(pressed & BUTTON_L1)) ? FIRMWARE_EMUNAND : FIRMWARE_SYSNAND;
-                firmSource = nandType;
-            }
+                if(CONFIG(6) && loadSplash()) pressed = HID_PAD;
 
-            /* If we're booting emuNAND the second emuNAND is set as default and B isn't pressed,
-               or vice-versa, boot the second emuNAND */
-            if(nandType != FIRMWARE_SYSNAND && (CONFIG(2) == !(pressed & BUTTON_B))) nandType = FIRMWARE_EMUNAND2;
+                /* If L and R/A/Select or one of the single payload buttons are pressed,
+                   chainload an external payload (the PIN, if any, has been verified)*/
+                bool shouldLoadPayload = (pressed & SINGLE_PAYLOAD_BUTTONS) || ((pressed & BUTTON_L1) && (pressed & L_PAYLOAD_BUTTONS));
+
+                if(shouldLoadPayload) loadPayload(pressed);
+
+                if(!CONFIG(6)) loadSplash();
+
+                //If R is pressed, boot the non-updated NAND with the FIRM of the opposite one
+                if(pressed & BUTTON_R1)
+                {
+                    nandType = (useSysAsDefault) ? FIRMWARE_EMUNAND : FIRMWARE_SYSNAND;
+                    firmSource = (useSysAsDefault) ? FIRMWARE_SYSNAND : FIRMWARE_EMUNAND;
+                }
+
+                /* Else, boot the NAND the user set to autoboot or the opposite one, depending on L,
+                   with their own FIRM */
+                else
+                {
+                    nandType = (CONFIG(0) != !(pressed & BUTTON_L1)) ? FIRMWARE_EMUNAND : FIRMWARE_SYSNAND;
+                    firmSource = nandType;
+                }
+
+                /* If we're booting emuNAND the second emuNAND is set as default and B isn't pressed,
+                   or vice-versa, boot the second emuNAND */
+                if(nandType != FIRMWARE_SYSNAND && (CONFIG(2) == !(pressed & BUTTON_B))) nandType = FIRMWARE_EMUNAND2;
+            }
         }
     }
 
@@ -224,13 +233,7 @@ void main(void)
             break;
     }
 
-    if(nbChronoStarted)
-    {
-        if(nbChronoStarted == 2) chrono(3);
-        stopChrono();
-    }
-
-    launchFirm(firmType, isFirmlaunch);
+    launchFirm(firmType);
 }
 
 static inline u32 loadFirm(FirmwareType firmType)
@@ -245,8 +248,8 @@ static inline u32 loadFirm(FirmwareType firmType)
         if(!fileRead(firm, "/luma/firmware.bin") || (((u32)section[2].address >> 8) & 0xFF) != 0x68)
             error("An old unsupported FIRM has been detected.\nCopy firmware.bin in /luma to boot");
 
-        //9.6 O3DS FIRM
-        firmVersion = 0x49;
+        //No assumption regarding FIRM version
+        firmVersion = 0xffffffff;
     }
     else decryptExeFs((u8 *)firm);
 
@@ -256,6 +259,7 @@ static inline u32 loadFirm(FirmwareType firmType)
 static inline void patchNativeFirm(u32 firmVersion, FirmwareSource nandType, u32 emuHeader, bool isA9lh)
 {
     u8 *arm9Section = (u8 *)firm + section[2].offset;
+    u8 *arm11Section1 = (u8 *)firm + section[1].offset;
 
     if(isN3DS)
     {
@@ -294,9 +298,11 @@ static inline void patchNativeFirm(u32 firmVersion, FirmwareSource nandType, u32
         //Apply anti-anti-DG patches
         patchTitleInstallMinVersionCheck(process9Offset, process9Size);
 
-        //Restore SVCBackdoor
-        reimplementSvcBackdoor((u8 *)firm + section[1].offset, section[1].size);
+        //Restore svcBackdoor
+        reimplementSvcBackdoor(arm11Section1, section[1].size);
     }
+
+    implementSvcGetCFWInfo(arm11Section1, section[1].size);
 }
 
 static inline void patchLegacyFirm(FirmwareType firmType)
@@ -309,6 +315,9 @@ static inline void patchLegacyFirm(FirmwareType firmType)
     }
 
     applyLegacyFirmPatches((u8 *)firm, firmType);
+
+    if(firmType == TWL_FIRM)
+        patchTwlBg((u8 *)firm + section[1].offset);
 }
 
 static inline void patchSafeFirm(void)
@@ -326,25 +335,56 @@ static inline void patchSafeFirm(void)
     else patchFirmWriteSafe(arm9Section, section[2].size);
 }
 
-static inline void copySection0AndInjectLoader(void)
+static inline void copySection0AndInjectSystemModules(FirmwareType firmType)
 {
     u8 *arm11Section0 = (u8 *)firm + section[0].offset;
 
-    u32 loaderSize;
-    u32 loaderOffset = getLoader(arm11Section0, &loaderSize);
+    struct
+    {
+        u32 size;
+        char name[8];
+        const u8 *addr;
+    } modules[5] = {{0}};
 
-    memcpy(section[0].address, arm11Section0, loaderOffset);
-    memcpy(section[0].address + loaderOffset, injector, injector_size);
-    memcpy(section[0].address + loaderOffset + injector_size, arm11Section0 + loaderOffset + loaderSize, section[0].size - (loaderOffset + loaderSize));
+    u8 *pos = arm11Section0, *end = pos + section[0].size;
+    u32 n = 0;
+
+    u32 loaderIndex = 0;
+    
+    while(pos < end)
+    {
+        modules[n].addr = pos;
+        modules[n].size = *(u32 *)(pos + 0x104) * 0x200;
+        
+        memcpy(modules[n].name, pos + 0x200, 8);
+        pos += modules[n].size;
+
+        if(firmType == NATIVE_FIRM && memcmp(modules[n].name, "loader", 7) == 0) loaderIndex = n;
+        n++;
+    }
+
+    if(firmType == NATIVE_FIRM)
+    {
+        modules[loaderIndex].size = injector_size;
+        modules[loaderIndex].addr = injector;
+    }
+
+    pos = section[0].address;
+    for(u32 i = 0; i < n; i++)
+    {
+        memcpy(pos, modules[i].addr, modules[i].size);
+        pos += modules[i].size;
+    }
+
 }
 
-static inline void launchFirm(FirmwareType firmType, bool isFirmlaunch)
+static inline void launchFirm(FirmwareType firmType)
 {
     //If we're booting NATIVE_FIRM, section0 needs to be copied separately to inject 3ds_injector
     u32 sectionNum;
-    if(firmType == NATIVE_FIRM)
+    if(firmType != SAFE_FIRM)
     {
-        copySection0AndInjectLoader();
+        copySection0AndInjectSystemModules(firmType);
         sectionNum = 1;
     }
     else sectionNum = 0;

@@ -26,11 +26,18 @@
 _start:
     b start
 
-    .word 0, 0
+.global launchedFirmTIDLow
+launchedFirmTIDLow:
+    .hword 0, 0, 0, 0, 0, 0, 0, 0 
 
 start:
     @ Change the stack pointer
     mov sp, #0x27000000
+
+    @ Disable interrupts
+    mrs r0, cpsr
+    orr r0, #0x1C0
+    msr cpsr_cx, r0
 
     @ Disable caches / MPU
     mrc p15, 0, r0, c1, c0, 0  @ read control register
@@ -70,8 +77,9 @@ start:
     mcr p15, 0, r8, c2, c0, 0   @ Data cacheable 0, 2, 4
     mcr p15, 0, r8, c2, c0, 1   @ Inst cacheable 0, 2, 4
 
-    @ Enable caches / MPU
+    @ Enable caches / MPU / ITCM
     mrc p15, 0, r0, c1, c0, 0  @ read control register
+    orr r0, r0, #(1<<18)       @ - ITCM enable
     orr r0, r0, #(1<<12)       @ - instruction cache enable
     orr r0, r0, #(1<<2)        @ - data cache enable
     orr r0, r0, #(1<<0)        @ - mpu enable

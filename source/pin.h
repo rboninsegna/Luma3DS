@@ -20,41 +20,27 @@
 *   Notices displayed by works containing it.
 */
 
+/*
+*   pin.h
+*
+*   Code to manage pin locking for 3ds. By reworks.
+*/
+
 #pragma once
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdbool.h>
+#include "types.h"
 
-#define CFG_BOOTENV    (*(vu32 *)0x10010000)
-#define CFG_UNITINFO   (*(vu8  *)0x10010010)
+#define PIN_LENGTH  4
 
-#define PDN_MPCORE_CFG (*(vu32 *)0x10140FFC)
-#define PDN_SPI_CNT    (*(vu32 *)0x101401C0)
-#define PDN_GPU_CNT    (*(vu8  *)0x10141200)
-
-//Common data types
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-typedef volatile u8 vu8;
-typedef volatile u16 vu16;
-typedef volatile u32 vu32;
-typedef volatile u64 vu64;
-
-//Used by multiple files:
-typedef enum FirmwareSource
+typedef struct __attribute__((packed))
 {
-    FIRMWARE_SYSNAND = 0,
-    FIRMWARE_EMUNAND = 1,
-    FIRMWARE_EMUNAND2 = 2
-} FirmwareSource;
+    char magic[4];
+    u16 formatVersionMajor, formatVersionMinor;
 
-typedef enum FirmwareType
-{
-    NATIVE_FIRM = 0,
-    TWL_FIRM = 1,
-    AGB_FIRM = 2,
-    SAFE_FIRM = 3
-} FirmwareType;
+    u8 testHash[32];
+    u8 hash[32];
+} PINData;
+
+bool readPin(PINData* out);
+void newPin(void);
+void verifyPin(PINData *in);

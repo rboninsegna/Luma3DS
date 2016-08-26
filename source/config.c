@@ -25,17 +25,16 @@
 #include "screen.h"
 #include "draw.h"
 #include "fs.h"
-#include "i2c.h"
 #include "buttons.h"
 
 void configureCFW(const char *configPath)
 {
-    bool needToDeinit = initScreens();
+    initScreens();
 
     drawString(CONFIG_TITLE, 10, 10, COLOR_TITLE);
     drawString("Press A to select, START to save", 10, 30, COLOR_WHITE);
 
-    const char *multiOptionsText[]  = { "Screen-init brightness: 4( ) 3( ) 2( ) 1( )",
+    const char *multiOptionsText[]  = { "Screen brightness: 4( ) 3( ) 2( ) 1( )",
                                         "New 3DS CPU: Off( ) Clock( ) L2( ) Clock+L2( )" };
 
     const char *singleOptionsText[] = { "( ) Autoboot SysNAND",
@@ -44,6 +43,8 @@ void configureCFW(const char *configPath)
                                         "( ) Enable region/language emu. and ext. .code",
                                         "( ) Show current NAND in System Settings",
                                         "( ) Show GBA boot screen in patched AGB_FIRM",
+										"( ) Display splash screen before payloads",
+                                        "( ) Use a PIN,
                                         "( ) Region free",
 										"( ) Try to block mandatory updates",
 										"( ) SecureInfo: sigpatch + use _C if available",
@@ -55,7 +56,7 @@ void configureCFW(const char *configPath)
         int posY;
         u32 enabled;
     } multiOptions[] = {
-        { .posXs = {26, 31, 36, 41} },
+        { .posXs = {21, 26, 31, 36} },
         { .posXs = {17, 26, 32, 44} }
     };
 
@@ -206,12 +207,4 @@ void configureCFW(const char *configPath)
 
     //Wait for the pressed buttons to change
     while(HID_PAD == BUTTON_START);
-
-    if(needToDeinit)
-    {
-        //Turn off backlight
-        i2cWriteRegister(I2C_DEV_MCU, 0x22, 0x16);
-        deinitScreens();
-        PDN_GPU_CNT = 1;
-    }
 }

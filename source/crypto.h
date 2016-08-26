@@ -101,6 +101,7 @@
 
 extern u32 emuOffset;
 extern bool isN3DS;
+extern bool isDevUnit;
 extern FirmwareSource firmSource;
 
 void ctrNandInit(void);
@@ -108,3 +109,5 @@ u32 ctrNandRead(u32 sector, u32 sectorCount, u8 *outbuf);
 void setRSAMod0DerivedKeys(void);
 void decryptExeFs(u8 *inbuf);
 void arm9Loader(u8 *arm9Section);
+
+void computePINHash(u8 out[32], u8 *in, u32 blockCount);

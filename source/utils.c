@@ -27,6 +27,8 @@
 #include "draw.h"
 #include "cache.h"
 
+extern bool isFirmlaunch;
+
 u32 waitInput(void)
 {
     u32 pressedKey = 0,
@@ -56,10 +58,22 @@ u32 waitInput(void)
 
 void mcuReboot(void)
 {
+    if(!isFirmlaunch && PDN_GPU_CNT != 1) clearScreens();
+
     flushEntireDCache(); //Ensure that all memory transfers have completed and that the data cache has been flushed
 
     i2cWriteRegister(I2C_DEV_MCU, 0x20, 1 << 2);
-    while(1);
+    while(true);
+}
+
+void mcuPowerOff(void)
+{
+    if(!isFirmlaunch && PDN_GPU_CNT != 1) clearScreens();
+
+    flushEntireDCache(); //Ensure that all memory transfers have completed and that the data cache has been flushed
+    
+    i2cWriteRegister(I2C_DEV_MCU, 0x20, 1 << 0);
+    while(true);
 }
 
 //TODO: add support for TIMER IRQ
@@ -76,14 +90,19 @@ static inline void startChrono(u64 initialTicks)
     for(u32 i = 1; i < 4; i++) REG_TIMER_CNT(i) = 0x84; //Count-up; enabled
 }
 
+static inline void stopChrono(void)
+{
+    for(u32 i = 0; i < 4; i++) REG_TIMER_CNT(i) &= ~0x80;
+}
+
 void chrono(u32 seconds)
 {
-    static u64 startingTicks = 0;
+    startChrono(0);
 
-    if(!startingTicks) startChrono(0);
+    u64 startingTicks = 0;
+    for(u32 i = 0; i < 4; i++) startingTicks |= REG_TIMER_VAL(i) << (16 * i);
 
     u64 res;
-
     do
     {
         res = 0;
@@ -91,12 +110,7 @@ void chrono(u32 seconds)
     }
     while(res - startingTicks < seconds * TICKS_PER_SEC);
 
-    if(!seconds) startingTicks = res;
-}
-
-void stopChrono(void)
-{
-    for(u32 i = 0; i < 4; i++) REG_TIMER_CNT(i) &= ~0x80;
+    stopChrono();
 }
 
 void error(const char *message)
@@ -108,9 +122,5 @@ void error(const char *message)
     drawString("Press any button to shutdown", 10, posY + 2 * SPACING_Y, COLOR_WHITE);
 
     waitInput();
-
-    flushEntireDCache(); //Ensure that all memory transfers have completed and that the data cache has been flushed
-
-    i2cWriteRegister(I2C_DEV_MCU, 0x20, 1);
-    while(1);
+    mcuPowerOff();
 }
