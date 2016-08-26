@@ -89,12 +89,21 @@ Asterisk indicates options "exclusive" to Puma33DS, whose numbers will need to b
 	
 ### Source files that access the CFW's folder
 
-
     . injector/source/patcher.c
     . source/draw.c
     . source/firm.c
     . source/fs.c
 	. source/pin.h (formerly pin.c)
+	
+### No git in PATH?
+
+Just change this block of the Makefile:
+    
+	name := Puma33DS
+    revision := $(shell git describe --tags --match v[0-9]* --abbrev=8 | sed 's/-[0-9]*-g/-/i')
+    commit := $(shell git rev-parse --short=8 HEAD)
+
+to have `revision` and `commit` to be static strings like `name` already is!
 
 ## Credits
  
