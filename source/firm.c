@@ -67,7 +67,7 @@ void main(void)
     //Mount filesystems. CTRNAND will be mounted only if/when needed
     mountFs();
 
-    const char configPath[] = "/luma/config.bin";
+    const char configPath[] = "/puma/config.bin";
 
     //Attempt to read the configuration file
     needConfig = fileRead(&config, configPath) ? MODIFY_CONFIGURATION : CREATE_CONFIGURATION;
@@ -245,8 +245,8 @@ static inline u32 loadFirm(FirmwareType firmType)
 
     if(!isN3DS && firmType == NATIVE_FIRM && firmVersion < 0x25)
     {
-        if(!fileRead(firm, "/luma/firmware.bin") || (((u32)section[2].address >> 8) & 0xFF) != 0x68)
-            error("An old unsupported FIRM has been detected.\nCopy firmware.bin in /luma to boot");
+        if(!fileRead(firm, "/puma/firmware.bin") || (((u32)section[2].address >> 8) & 0xFF) != 0x68)
+            error("An old unsupported FIRM has been detected.\nCopy firmware.bin in /puma to boot.\nConsider updating to 9.6+.");
 
         //No assumption regarding FIRM version
         firmVersion = 0xffffffff;

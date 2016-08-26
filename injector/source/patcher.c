@@ -155,10 +155,10 @@ static void progIdToStr(char *strEnd, u64 progId)
 
 static void loadTitleCodeSection(u64 progId, u8 *code, u32 size)
 {
-    /* Here we look for "/luma/code_sections/[u64 titleID in hex, uppercase].bin"
+    /* Here we look for "/puma/code_sections/[u64 titleID in hex, uppercase].bin"
        If it exists it should be a decompressed binary code file */
 
-    char path[] = "/luma/code_sections/0000000000000000.bin";
+    char path[] = "/puma/code_sections/0000000000000000.bin";
     progIdToStr(path + 35, progId);
 
     IFile file;
@@ -180,10 +180,10 @@ static void loadTitleCodeSection(u64 progId, u8 *code, u32 size)
 
 static int loadTitleLocaleConfig(u64 progId, u8 *regionId, u8 *languageId)
 {
-    /* Here we look for "/luma/locales/[u64 titleID in hex, uppercase].txt"
+    /* Here we look for "/puma/locales/[u64 titleID in hex, uppercase].txt"
        If it exists it should contain, for example, "EUR IT" */
 
-    char path[] = "/luma/locales/0000000000000000.txt";
+    char path[] = "/puma/locales/0000000000000000.txt";
     progIdToStr(path + 29, progId);
 
     IFile file;

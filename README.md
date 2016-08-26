@@ -31,12 +31,34 @@ It is not inherently A9LH exclusive but I don't plan on trying to maintain compa
 Mainly that. If you really want to look into it, you could read it as "Pro Luma" given the main difference...
 
 ## Storage Folder
-Since I only use one CFW at a time,
-and partially out of respect for the original project,
-and it's Well Known that nobody likes folders on root,
-and I'm lazy,
 
-I've decided to keep using /luma/. Note however that **the config.bin of Luma and Puma are incompatible, so be sure to delete it when switching**.
+According to popular request by multibooters, I've changed "luma" to "puma".
+
+The internal layout is still Luma-compatible.
+
+## "Enable region/language emulation and ext. .code"?
+
+### Region spoofing
+
+1. Create a text file: 3 characters uppercase region, a space, 2 characters uppercase language. Any further characters, including line breaks, are ignored.
+2. Save as /puma/locales/[u64 titleID in hex, uppercase].txt
+3. Make sure the appropriate option is enabled, and that you're working on a regular app (title ID 00040000-*)
+
+Possible regions: JPN, USA, EUR, AUS (unused), CHN, KOR, TWN
+
+Possible languages: JP, EN, FR, DE, IT, ES, ZH, KO, NL, PT, RU, TW
+
+Note, not all possible region-language pairs are supported. This means:
+* EUR goes with EN, FR, DE, IT, ES, PT, NL, or RU;
+* USA goes with EN, FR, ES, or PT;
+* JPN, KOR, CHN, TWN only go with their single language.
+
+
+### Code replacement
+
+1. Create custom code.bin
+2. Save as /puma/code_sections/[u64 titleID in hex, uppercase].bin
+3. Make sure the appropriate option is enabled, and that you're working on a regular app (title ID 00040000-*)
 
 ## Compiling
 
