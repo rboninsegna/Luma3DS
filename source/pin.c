@@ -39,7 +39,7 @@ bool readPin(PINData *out)
     u8 __attribute__((aligned(4))) zeroes[16] = {0};
     u8 __attribute__((aligned(4))) tmp[32] = {0};
 
-    if(fileRead(out, "/luma/pin.bin") != sizeof(PINData)) return false;
+    if(fileRead(out, PIN_LOCATION) != sizeof(PINData)) return false;
     if(memcmp(out->magic, "PINF", 4) != 0) return false;
 
     computePINHash(tmp, zeroes, 1);
@@ -103,7 +103,7 @@ void newPin(void)
     computePINHash(tmp, enteredPassword, (PIN_LENGTH + 15) / 16);
     memcpy(pin.hash, tmp, 32);
 
-    fileWrite(&pin, "/luma/pin.bin", sizeof(PINData));
+    fileWrite(&pin, PIN_LOCATION, sizeof(PINData));
     
     while(HID_PAD & PIN_BUTTONS);
 }

@@ -31,6 +31,7 @@
 #include "types.h"
 
 #define PIN_LENGTH  4
+#define PIN_LOCATION "/luma/pin.bin"
 
 typedef struct __attribute__((packed))
 {
