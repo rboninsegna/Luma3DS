@@ -220,7 +220,7 @@ void main(void)
 
             if(!fileWrite(&config, configPath, 4))
             {
-                createDirectory("luma");
+                createDirectory("puma");
                 if(!fileWrite(&config, configPath, 4))
                     error("Error writing the configuration file");
             }
@@ -260,7 +260,7 @@ static inline u32 loadFirm(FirmwareType firmType)
             error("An old unsupported NAND has been detected.\nPuma33DS is unable to boot it.\nConsider flashing a more updated backup\n or transferring a newer CTRNAND.");
 
         //We can't boot a 4.x NATIVE_FIRM, load one from SD
-        if(!fileRead(firm, "/luma/firmware.bin") || (((u32)section[2].address >> 8) & 0xFF) != 0x68)
+        if(!fileRead(firm, "/puma/firmware.bin") || (((u32)section[2].address >> 8) & 0xFF) != 0x68)
             error("An old unsupported FIRM has been detected.\nCopy firmware.bin in /puma to boot.\nConsider updating to 9.6+.");
 
         //No assumption regarding FIRM version
