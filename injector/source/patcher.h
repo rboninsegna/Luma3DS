@@ -8,6 +8,14 @@
 #define MULTICONFIG(a)   ((info.config >> (a * 2 + 6)) & 3)
 #define BOOTCONFIG(a, b) ((info.config >> a) & b)
 
+// Symbolic option numbers
+#define OPTION_REGION_FREE    9
+#define OPTION_UPDATE_BYPASS 10
+#define OPTION_SECUREINFO    11
+#define OPTION_ERRDISP       12
+#define OPTION_TESTMENU      13
+
+
 typedef struct __attribute__((packed))
 {
     char magic[4];
