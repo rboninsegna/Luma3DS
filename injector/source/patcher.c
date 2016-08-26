@@ -347,7 +347,7 @@ void patchCode(u64 progId, u8 *code, u32 size)
         case 0x000400300000A902LL: // KOR Menu
         case 0x000400300000B102LL: // TWN Menu
         {
-			if(CONFIG(6)){
+			if(CONFIG(8)){
 				static const u8 regionFreePattern[] = {
 					0x00, 0x00, 0x55, 0xE3, 0x01, 0x10, 0xA0, 0xE3
 				};
@@ -376,7 +376,7 @@ void patchCode(u64 progId, u8 *code, u32 size)
                 0xE3, 0xA0
             };
 			
-			if(CONFIG(7)){
+			if(CONFIG(9)){
 				//Block silent auto-updates
 				patchMemory(code, size, 
 					blockAutoUpdatesPattern, 
@@ -397,7 +397,7 @@ void patchCode(u64 progId, u8 *code, u32 size)
                 };
 
                 //Skip update checks to access the EShop
-				if(CONFIG(7)){
+				if(CONFIG(9)){
 					patchMemory(code, size, 
 						skipEshopUpdateCheckPattern, 
 						sizeof(skipEshopUpdateCheckPattern), 0, 
@@ -461,7 +461,7 @@ void patchCode(u64 progId, u8 *code, u32 size)
                 0x0B, 0x18, 0x21, 0xC8
             };
 			
-			if(CONFIG(6) | CONFIG(7)){ //bitwise OR given the nature of the CONFIG macro
+			if(CONFIG(8) | CONFIG(9)){ //bitwise OR given the nature of the CONFIG macro
 				//Disable updates from foreign carts (makes carts region-free)
 				patchMemory(code, size, 
 					stopCartUpdatesPattern, 
@@ -471,7 +471,7 @@ void patchCode(u64 progId, u8 *code, u32 size)
 				);
 			}
 			
-			if(CONFIG(10)){
+			if(CONFIG(12)){
 				// Force HOME Menu TID
 				static const u8 forceHOMEMenuTIDPattern[] = {
 					/* ldr r0, =0x101 */
@@ -523,7 +523,7 @@ void patchCode(u64 progId, u8 *code, u32 size)
                 0x00, 0x26
             };
 			
-			if(CONFIG(8)){
+			if(CONFIG(10)){
 				//Disable SecureInfo signature check
 				patchMemory(code, size, 
 					secureinfoSigCheckPattern, 
@@ -606,7 +606,7 @@ void patchCode(u64 progId, u8 *code, u32 size)
 				0x00, 0x00, 0xA0, 0xE3
 			} ;
                 
-			if(CONFIG(9)) {
+			if(CONFIG(11)) {
                 patchMemory(code, size, 
                     unitinfoCheckPattern1, 
                     sizeof(unitinfoCheckPattern1), 0, 

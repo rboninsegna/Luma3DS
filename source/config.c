@@ -34,22 +34,22 @@ void configureCFW(const char *configPath)
     drawString(CONFIG_TITLE, 10, 10, COLOR_TITLE);
     drawString("Press A to select, START to save", 10, 30, COLOR_WHITE);
 
-    const char *multiOptionsText[]  = { "Screen brightness: 4( ) 3( ) 2( ) 1( )",
+    const char *multiOptionsText[]  = {"Screen brightness: 4( ) 3( ) 2( ) 1( )",
                                         "New 3DS CPU: Off( ) Clock( ) L2( ) Clock+L2( )" };
 
-    const char *singleOptionsText[] = { "( ) Autoboot SysNAND",
-                                        "( ) Use SysNAND FIRM if booting with R (A9LH)",
-                                        "( ) Use second EmuNAND as default",
-                                        "( ) Enable region/language emu. and ext. .code",
-                                        "( ) Show current NAND in System Settings",
-                                        "( ) Show GBA boot screen in patched AGB_FIRM",
-										"( ) Display splash screen before payloads",
-                                        "( ) Use a PIN,
-                                        "( ) Region free",
-										"( ) Try to block mandatory updates",
-										"( ) SecureInfo: sigpatch + use _C if available",
-										"( ) Verbose errors (ErrDisp)",
-										"( ) Force TestMenu as home screen"};
+    const char *singleOptionsText[] = {"( ) Autoboot SysNAND", //0
+                                        "( ) Use SysNAND FIRM if booting with R (A9LH)", //1
+                                        "( ) Use second EmuNAND as default", //2
+                                        "( ) Enable region/language emu. and ext. .code", //3
+                                        "( ) Show current NAND/kernel in System Settings", //4
+                                        "( ) Show GBA boot screen in patched AGB_FIRM", //5
+										"( ) Display splash screen before payloads", //6
+                                        "( ) Use a PIN", //7
+                                        "( ) Region free", //8
+										"( ) Try to block mandatory updates", //9
+										"( ) SecureInfo: sigpatch + use _C if available", //10
+										"( ) Verbose errors (ErrDisp)", //11
+										"( ) Force TestMenu as home screen" }; //12
 
     struct multiOption {
         int posXs[4];
