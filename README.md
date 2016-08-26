@@ -43,7 +43,7 @@ I've decided to keep using /luma/. Note however that **the config.bin of Luma an
 First you need to install DevKitARM.
 
 As of 2016-8-1 you'll also need manually compile and install an updated ctrulib, as the bundled one is too old.
-Just download its source, `make` it, then replace devKitPro/libctru/* with the project folder jou just downloaded and compiled.
+Just download its source, `make` it, then replace devKitPro/libctru/* with the project folder you just downloaded and compiled.
 
 You will also need [armips](https://github.com/Kingcom/armips), [bin2c](https://sourceforge.net/projects/bin2c/), and a recent build of [makerom](https://github.com/profi200/Project_CTR) added to your PATH (for example, in devkitARM/bin/).
 For your convenience, here are [Windows](http://www91.zippyshare.com/v/ePGpjk9r/file.html) and [Linux](https://mega.nz/#!uQ1T1IAD!Q91O0e12LXKiaXh_YjXD3D5m8_W3FuMI-hEa6KVMRDQ) builds of armips (thanks to who compiled them!).  
@@ -64,6 +64,15 @@ Asterisk indicates options "exclusive" to Puma33DS, whose numbers will need to b
     . source/firm.h
     . source/patches.c
     . source/screen.c
+	
+### Source files that access the CFW's folder
+
+
+    . injector/source/patcher.c
+    . source/draw.c
+    . source/firm.c
+    . source/fs.c
+	. source/pin.h (formerly pin.c)
 
 ## Credits
  
