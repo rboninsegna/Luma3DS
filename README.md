@@ -58,6 +58,14 @@ Note, not all possible region-language pairs are supported. This means:
 2. Save as /puma/code_sections/[u64 titleID in hex, uppercase].bin
 3. Make sure the appropriate option is enabled, and that you're working on a regular app (title ID 00040000-*)
 
+
+### eShop country spoofing
+
+1. Create a text file: 2 characters uppercase country name. Any further characters, including line breaks, are ignored.
+2. Save as /puma/locales/country.txt
+3. As long as the file exists, this feature is always enabled. 
+
+
 ## Compiling
 
 First you need to install DevKitARM.
@@ -105,7 +113,7 @@ to have `revision` and `commit` to be static strings like `name` already is!
 
 ## Credits
  
-See https://github.com/AuroraWright/Luma3DS/wiki/Credits, plus thanks to Reisyukaku for their TestMenu NS patch.
+See https://github.com/AuroraWright/Luma3DS/wiki/Credits, plus thanks to @Reisyukaku for their TestMenu NS patch, and to @yifanlu for the country response spoofing.
 
 ## Licensing
 
