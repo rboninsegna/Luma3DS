@@ -205,6 +205,27 @@ static int loadTitleLocaleConfig(u64 progId, u8 *regionId, u8 *languageId)
     return ret;
 }
 
+static int loadCountryConfig(char *countryString)
+{
+    /* Here we look for "/puma/locales/country.txt"
+       If it exists it should contain, for example, "GB" */
+    char path[] = "/puma/locales/country.txt";
+
+    IFile file;
+    Result ret = fileOpen(&file, ARCHIVE_SDMC, path, FS_OPEN_READ);
+    if(R_SUCCEEDED(ret))
+    {
+        u64 total;
+
+        ret = IFile_Read(&file, &total, countryString, 2);
+        IFile_Close(&file);
+
+        if(!R_SUCCEEDED(ret) || total < 2) return -1;
+		return 0;
+	}
+    return ret;
+}
+
 static u8 *getCfgOffsets(u8 *code, u32 size, u32 *CFGUHandleOffset)
 {
     /* HANS:
@@ -351,6 +372,8 @@ void patchCode(u64 progId, u8 *code, u32 size)
 
         case 0x0004013000002C02LL: // NIM
         {
+		
+			//Block silent auto-updates
             static const u8 blockAutoUpdatesPattern[] = {
                 0x25, 0x79, 0x0B, 0x99
             };
@@ -359,7 +382,6 @@ void patchCode(u64 progId, u8 *code, u32 size)
             };
 			
 			if(CONFIG(OPTION_UPDATE_BYPASS)){
-				//Block silent auto-updates
 				patchMemory(code, size, 
 					blockAutoUpdatesPattern, 
 					sizeof(blockAutoUpdatesPattern), 0, 
@@ -368,6 +390,37 @@ void patchCode(u64 progId, u8 *code, u32 size)
 				);
 			}
 			
+			
+			//eShop country forcer, by Yifan Lu
+			static const char eshopCountryPattern[] = {
+			  0x01, 0x20, 0x01, 0x90,
+			  0x22, 0x46, 0x06, 0x9B
+			};
+			static const char eshopCountryPatchBase[] = {
+				0x06, 0x9A, 0x03, 0x20, 
+				0x90, 0x47, 0x55, 0x21, 
+				0x01, 0x70, 0x53, 0x21, 
+				0x41, 0x70, 0x00, 0x21, 
+				0x81, 0x70, 0x60, 0x61, 
+				0x00, 0x20
+			};
+			char country[3];
+			char eshopCountryPatch[sizeof(eshopCountryPatchBase)];
+			
+			if (!loadCountryConfig(country)) { //country.txt loaded OK?			
+				// Yes: finish assembling the patch
+				memcpy(eshopCountryPatch, eshopCountryPatchBase, sizeof(eshopCountryPatchBase));
+				eshopCountryPatch[6] = country[0];
+				eshopCountryPatch[10] = country[1];
+				patchMemory(code, size, 
+					eshopCountryPattern, 
+					sizeof(eshopCountryPattern), 0, 
+					eshopCountryPatch, 
+					sizeof(eshopCountryPatch), 1
+				);
+			}
+			
+
             //Apply only if the updated NAND hasn't been booted
             if((BOOTCONFIG(0, 3) != 0) == (BOOTCONFIG(2, 1) && CONFIG(1)))
             {
