@@ -5,9 +5,7 @@ I've made this CFW because I am dissatisfied with how Luma forces the user to ap
 
 If you couldn't tell, 99% of the code is made by upstream, by up-upstream, etc
 
-I don't plan to mantain the dev branch, but key features may be merged.
-
-It is not inherently A9LH exclusive but I don't plan on trying to maintain compatibility with the .dat build.
+It is now A9LH exclusive.
 
 ## The name
 > ***Al3x _10m, [29.07.16 16:02]***

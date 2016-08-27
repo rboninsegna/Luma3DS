@@ -19,15 +19,12 @@ dir_source := source
 dir_patches := patches
 dir_loader := loader
 dir_injector := injector
-dir_mset := CakeHax
-dir_ninjhax := CakeBrah
 dir_build := build
 dir_out := out
 
 ASFLAGS := -mcpu=arm946e-s
 CFLAGS := -Wall -Wextra -MMD -MP -marm $(ASFLAGS) -fno-builtin -fshort-wchar -std=c11 -Wno-main -O2 -flto -ffast-math
 LDFLAGS := -nostartfiles
-FLAGS := name=$(name).dat dir_out=$(abspath $(dir_out)) ICON=$(abspath icon.png) APP_DESCRIPTION="Noob-friendly 3DS CFW." APP_AUTHOR="Aurora Wright/TuxSH" --no-print-directory
 
 objects = $(patsubst $(dir_source)/%.s, $(dir_build)/%.o, \
           $(patsubst $(dir_source)/%.c, $(dir_build)/%.o, \
@@ -37,24 +34,16 @@ bundled = $(dir_build)/rebootpatch.h $(dir_build)/emunandpatch.h $(dir_build)/sv
 		  $(dir_build)/injector.h $(dir_build)/loader.h
 
 .PHONY: all
-all: launcher a9lh ninjhax
-
-.PHONY: launcher
-launcher: $(dir_out)/$(name).dat
+all: a9lh
 
 .PHONY: a9lh
 a9lh: $(dir_out)/arm9loaderhax.bin
-
-.PHONY: ninjhax
-ninjhax: $(dir_out)/3ds/$(name)
 
 .PHONY: release
 release: $(dir_out)/$(name)$(revision).7z
 
 .PHONY: clean
 clean:
-	@$(MAKE) $(FLAGS) -C $(dir_mset) clean
-	@$(MAKE) $(FLAGS) -C $(dir_ninjhax) clean
 	@$(MAKE) -C $(dir_loader) clean
 	@$(MAKE) -C $(dir_injector) clean
 	@rm -rf $(dir_out) $(dir_build)
@@ -62,19 +51,10 @@ clean:
 $(dir_out):
 	@mkdir -p "$(dir_out)"
 
-$(dir_out)/$(name).dat: $(dir_build)/main.bin $(dir_out)
-	@$(MAKE) $(FLAGS) -C $(dir_mset) launcher
-	@dd if=$(dir_build)/main.bin of=$@ bs=512 seek=144
-
 $(dir_out)/arm9loaderhax.bin: $(dir_build)/main.bin $(dir_out)
 	@cp -a $(dir_build)/main.bin $@
 
-$(dir_out)/3ds/$(name): $(dir_out)
-	@mkdir -p "$@"
-	@$(MAKE) $(FLAGS) -C $(dir_ninjhax)
-	@mv $(dir_out)/$(name).3dsx $(dir_out)/$(name).smdh $@
-
-$(dir_out)/$(name)$(revision).7z: launcher a9lh ninjhax
+$(dir_out)/$(name)$(revision).7z: a9lh
 	@7z a -mx $@ ./$(@D)/*
 
 $(dir_build)/main.bin: $(dir_build)/main.elf
