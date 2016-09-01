@@ -20,30 +20,10 @@
 *   Notices displayed by works containing it.
 */
 
-/*
-*   pin.h
-*
-*   Code to manage pin locking for 3ds. By reworks.
-*/
-
 #pragma once
 
 #include "types.h"
 
-#define PIN_LOCATION "/puma/pin.bin"
-
-#define PIN_LENGTH  4
-#define PIN_VERSIONMAJOR 1
-#define PIN_VERSIONMINOR 0
-
-typedef struct __attribute__((packed))
-{
-    char magic[4];
-    u16 formatVersionMajor, formatVersionMinor;
-
-    u8 testHash[32];
-    u8 hash[32];
-} PINData;
-
-void newPin(bool allowSkipping);
-bool verifyPin(void);
+int strlen(const char *string);
+void concatenateStrings(char *destination, const char *source);
+void hexItoa(u32 number, char *out);

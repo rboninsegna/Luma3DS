@@ -32,6 +32,6 @@ void mountFs(void);
 u32 fileRead(void *dest, const char *path);
 u32 getFileSize(const char *path);
 bool fileWrite(const void *buffer, const char *path, u32 size);
-void createDirectory(const char *path);
+void fileDelete(const char *path);
 void loadPayload(u32 pressed);
 u32 firmRead(void *dest, u32 firmType);

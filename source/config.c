@@ -21,12 +21,50 @@
 */
 
 #include "config.h"
+#include "memory.h"
+#include "fs.h"
 #include "utils.h"
 #include "screen.h"
 #include "draw.h"
 #include "buttons.h"
+#include "pin.h"
 
-void configureCFW(void)
+bool readConfig(const char *configPath)
+{
+    if(fileRead(&configData, configPath) != sizeof(cfgData) ||
+       memcmp(configData.magic, "CONF", 4) != 0 ||
+       configData.formatVersionMajor != CONFIG_VERSIONMAJOR ||
+       configData.formatVersionMinor != CONFIG_VERSIONMINOR)
+    {
+        configData.config = 0;
+        return false;
+    }
+
+    return true;
+}
+
+void writeConfig(const char *configPath, u32 configTemp, ConfigurationStatus needConfig)
+{
+    /* If the configuration is different from previously, overwrite it.
+       Just the no-forcing flag being set is not enough */
+    if(needConfig == CREATE_CONFIGURATION || (configTemp & 0xFFFFFFEF) != configData.config)
+    {
+        if(needConfig == CREATE_CONFIGURATION)
+        {
+            memcpy(configData.magic, "CONF", 4);
+            configData.formatVersionMajor = CONFIG_VERSIONMAJOR;
+            configData.formatVersionMinor = CONFIG_VERSIONMINOR;
+        }
+
+        //Merge the new options and new boot configuration
+        configData.config = (configData.config & 0xFFFFFFC0) | (configTemp & 0x3F);
+
+        if(!fileWrite(&configData, configPath, sizeof(cfgData)))
+            error("Error writing the configuration file");
+    }
+}
+
+void configMenu(bool oldPinStatus)
 {
     initScreens();
 
@@ -41,16 +79,15 @@ void configureCFW(void)
                                         "( ) Use second EmuNAND as default", //2
                                         "( ) Enable region/language emu. and ext. .code", //3
                                         "( ) Show current NAND/kernel in System Settings", //4
-                                        "( ) Show GBA boot screen in patched AGB_FIRM", //5
-										"( ) Display splash screen before payloads", //6
-                                        "( ) Use a PIN", //7
-										"( ) Enable experimental TwlBg patches", //8
+										"( ) Enable experimental TwlBg patches",//5
+                                        "( ) Show GBA boot screen in patched AGB_FIRM", //6
+										"( ) Display splash screen before payloads", //7
+                                        "( ) Use a PIN", //8
                                         "( ) Region free", //9
 										"( ) Try to block mandatory updates", //10
 										"( ) SecureInfo: sigpatch + use _C if available", //11
 										"( ) Verbose errors (ErrDisp)", //12
 										"( ) Force TestMenu as home screen" }; //13
-
     struct multiOption {
         int posXs[4];
         int posY;
@@ -190,14 +227,19 @@ void configureCFW(void)
     }
 
     //Preserve the last-used boot options (last 12 bits)
-    config &= 0x3F;
+    configData.config &= 0x3F;
 
     //Parse and write the new configuration
     for(u32 i = 0; i < multiOptionsAmount; i++)
-        config |= multiOptions[i].enabled << (i * 2 + 6);
+        configData.config |= multiOptions[i].enabled << (i * 2 + 6);
     for(u32 i = 0; i < singleOptionsAmount; i++)
-        config |= (singleOptions[i].enabled ? 1 : 0) << (i + 16);
+        configData.config |= (singleOptions[i].enabled ? 1 : 0) << (i + 16);
+
+    if(CONFIG(8)) newPin(oldPinStatus);
+    else if(oldPinStatus) fileDelete(PIN_LOCATION);
 
     //Wait for the pressed buttons to change
-    while(HID_PAD == BUTTON_START);
+    while(HID_PAD & PIN_BUTTONS);
+
+    chrono(2);
 }

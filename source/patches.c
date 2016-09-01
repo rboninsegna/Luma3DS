@@ -27,47 +27,6 @@
 #include "../build/svcGetCFWInfopatch.h"
 #include "../build/twl_k11modulespatch.h"
 
-static u32 *arm11ExceptionsPage = NULL;
-static u32 *arm11SvcTable = NULL;
-static u32 *arm11SvcHandler = NULL;
-
-static u8 *freeK11Space = NULL; //other than the one used for svcBackdoor
-
-static void findArm11ExceptionsPageAndSvcHandlerAndTable(u8 *pos, u32 size)
-{
-    const u8 arm11ExceptionsPagePattern[] = {0x00, 0xB0, 0x9C, 0xE5};
-    
-    if(arm11ExceptionsPage == NULL) arm11ExceptionsPage = (u32 *)memsearch(pos, arm11ExceptionsPagePattern, size, 4) - 0xB;
-    if((arm11SvcTable == NULL || arm11SvcHandler == NULL) && arm11ExceptionsPage != NULL)
-    {
-        u32 svcOffset = (-((arm11ExceptionsPage[2] & 0xFFFFFF) << 2) & (0xFFFFFF << 2)) - 8; //Branch offset + 8 for prefetch
-        arm11SvcHandler = arm11SvcTable = (u32 *)(pos + *(u32 *)(pos + 0xFFFF0008 - svcOffset - 0xFFF00000 + 8) - 0xFFF00000); //SVC handler address
-        while(*arm11SvcTable) arm11SvcTable++; //Look for SVC0 (NULL)
-    }
-}
-
-static void findFreeK11Space(u8 *pos, u32 size)
-{
-    if(freeK11Space == NULL)
-    {
-        const u8 bogus_pattern[] = { 0x1E, 0xFF, 0x2F, 0xE1, 0x1E, 0xFF, 0x2F, 0xE1, 0x1E, 0xFF, 
-                                     0x2F, 0xE1, 0x00, 0x10, 0xA0, 0xE3, 0x00, 0x10, 0xC0, 0xE5, 
-                                     0x1E, 0xFF, 0x2F, 0xE1 };
-        
-        u32 *someSpace = (u32 *)memsearch(pos, bogus_pattern, size, 24);
-
-        // We couldn't find the place where to begin our search of an empty block
-        if (someSpace == NULL)
-            return;
-
-        // Advance until we reach the padding area (filled with 0xFF)
-        u32 *freeSpace;
-        for(freeSpace = someSpace; *freeSpace != 0xFFFFFFFF; freeSpace++);
-
-        freeK11Space = (u8 *)freeSpace;
-    }
-}
-
 u8 *getProcess9(u8 *pos, u32 size, u32 *process9Size, u32 *process9MemAddr)
 {
     u8 *off = memsearch(pos, "ess9", size, 4);
@@ -77,6 +36,22 @@ u8 *getProcess9(u8 *pos, u32 size, u32 *process9Size, u32 *process9MemAddr)
 
     //Process9 code offset (start of NCCH + ExeFS offset + ExeFS header size)
     return off - 0x204 + (*(u32 *)(off - 0x64) * 0x200) + 0x200;
+}
+
+u32 *getKernel11Info(u8 *pos, u32 size, u8 **freeK11Space)
+{    
+    const u8 pattern[] = {0x00, 0xB0, 0x9C, 0xE5};
+
+    u32 *arm11ExceptionsPage = (u32 *)memsearch(pos, pattern, size, 4) - 0xB;
+    u32 svcOffset = (-((arm11ExceptionsPage[2] & 0xFFFFFF) << 2) & (0xFFFFFF << 2)) - 8; //Branch offset + 8 for prefetch
+    u32 *arm11SvcTable = (u32 *)(pos + *(u32 *)(pos + 0xFFFF0008 - svcOffset - 0xFFF00000 + 8) - 0xFFF00000); //SVC handler address
+    while(*arm11SvcTable) arm11SvcTable++; //Look for SVC0 (NULL)
+
+    const u8 pattern2[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+    *freeK11Space = memsearch(pos, pattern2, size, 5) + 1;
+
+    return arm11SvcTable;
 }
 
 void patchSignatureChecks(u8 *pos, u32 size)
@@ -98,9 +73,9 @@ void patchSignatureChecks(u8 *pos, u32 size)
 void patchFirmlaunches(u8 *pos, u32 size, u32 process9MemAddr)
 {
     //Look for firmlaunch code
-    const u8 pattern[] = {0xDE, 0x1F, 0x8D, 0xE2};
+    const u8 pattern[] = {0xE2, 0x20, 0x20, 0x90};
 
-    u8 *off = memsearch(pos, pattern, size, 4) - 0x10;
+    u8 *off = memsearch(pos, pattern, size, 4) - 0x13;
 
     //Firmlaunch function offset - offset in BLX opcode (A4-16 - ARM DDI 0100E) + 1
     u32 fOpenOffset = (u32)(off + 9 - (-((*(u32 *)off & 0x00FFFFFF) << 2) & (0xFFFFFF << 2)) - pos + process9MemAddr);
@@ -127,60 +102,53 @@ void patchFirmWrites(u8 *pos, u32 size)
     off2[1] = writeBlock[1];
 }
 
-void patchFirmWriteSafe(u8 *pos, u32 size)
+void patchOldFirmWrites(u8 *pos, u32 size)
 {
-    const u16 writeBlockSafe[2] = {0x2400, 0xE01D};
+    const u16 writeBlockOld[2] = {0x2400, 0xE01D};
 
     //Look for FIRM writing code
     const u8 pattern[] = {0x04, 0x1E, 0x1D, 0xDB};
 
     u16 *off = (u16 *)memsearch(pos, pattern, size, 4);
 
-    off[0] = writeBlockSafe[0];
-    off[1] = writeBlockSafe[1];
+    off[0] = writeBlockOld[0];
+    off[1] = writeBlockOld[1];
 }
 
-void reimplementSvcBackdoor(u8 *pos, u32 size)
+void reimplementSvcBackdoor(u8 *pos, u32 *arm11SvcTable, u8 **freeK11Space)
 {
     //Official implementation of svcBackdoor
-    const u8  svcBackdoor[40] = {0xFF, 0x10, 0xCD, 0xE3,  //bic   r1, sp, #0xff
-                                 0x0F, 0x1C, 0x81, 0xE3,  //orr   r1, r1, #0xf00
-                                 0x28, 0x10, 0x81, 0xE2,  //add   r1, r1, #0x28
-                                 0x00, 0x20, 0x91, 0xE5,  //ldr   r2, [r1]
-                                 0x00, 0x60, 0x22, 0xE9,  //stmdb r2!, {sp, lr}
-                                 0x02, 0xD0, 0xA0, 0xE1,  //mov   sp, r2
-                                 0x30, 0xFF, 0x2F, 0xE1,  //blx   r0
-                                 0x03, 0x00, 0xBD, 0xE8,  //pop   {r0, r1}
-                                 0x00, 0xD0, 0xA0, 0xE1,  //mov   sp, r0
-                                 0x11, 0xFF, 0x2F, 0xE1}; //bx    r1
-
-    findArm11ExceptionsPageAndSvcHandlerAndTable(pos, size);
+    const u8 svcBackdoor[40] = {0xFF, 0x10, 0xCD, 0xE3,  //bic   r1, sp, #0xff
+                                0x0F, 0x1C, 0x81, 0xE3,  //orr   r1, r1, #0xf00
+                                0x28, 0x10, 0x81, 0xE2,  //add   r1, r1, #0x28
+                                0x00, 0x20, 0x91, 0xE5,  //ldr   r2, [r1]
+                                0x00, 0x60, 0x22, 0xE9,  //stmdb r2!, {sp, lr}
+                                0x02, 0xD0, 0xA0, 0xE1,  //mov   sp, r2
+                                0x30, 0xFF, 0x2F, 0xE1,  //blx   r0
+                                0x03, 0x00, 0xBD, 0xE8,  //pop   {r0, r1}
+                                0x00, 0xD0, 0xA0, 0xE1,  //mov   sp, r0
+                                0x11, 0xFF, 0x2F, 0xE1}; //bx    r1
 
     if(!arm11SvcTable[0x7B])
     {
-        u32 *freeSpace;
-        for(freeSpace = arm11ExceptionsPage; *freeSpace != 0xFFFFFFFF; freeSpace++);
+        memcpy(*freeK11Space, svcBackdoor, 40);
 
-        memcpy(freeSpace, svcBackdoor, 40);
-
-        arm11SvcTable[0x7B] = 0xFFFF0000 + ((u8 *)freeSpace - (u8 *)arm11ExceptionsPage);
+        arm11SvcTable[0x7B] = 0xFFF00000 + *freeK11Space - pos;
+        (*freeK11Space) += 40;
     }
 }
 
-void implementSvcGetCFWInfo(u8 *pos, u32 size)
+void implementSvcGetCFWInfo(u8 *pos, u32 *arm11SvcTable, u8 **freeK11Space)
 {
+    memcpy(*freeK11Space, svcGetCFWInfo, svcGetCFWInfo_size);
+
+    CFWInfo *info = (CFWInfo *)memsearch(*freeK11Space, "LUMA", svcGetCFWInfo_size, 4);
+
     const char *rev = REVISION;
     bool isRelease;
 
-    findArm11ExceptionsPageAndSvcHandlerAndTable(pos, size);
-    findFreeK11Space(pos, size);
-    
-    memcpy(freeK11Space, svcGetCFWInfo, svcGetCFWInfo_size);
-
-    CFWInfo *info = (CFWInfo *)memsearch(freeK11Space, "LUMA", svcGetCFWInfo_size, 4);
-
     info->commitHash = COMMIT_HASH;
-    info->config = config;
+    info->config = configData.config;
     info->versionMajor = (u8)(rev[1] - '0');
     info->versionMinor = (u8)(rev[3] - '0');
     if(rev[4] == '.')
@@ -188,13 +156,12 @@ void implementSvcGetCFWInfo(u8 *pos, u32 size)
         info->versionBuild = (u8)(rev[5] - '0');
         isRelease = rev[6] == 0;
     }
-    else
-        isRelease = rev[4] == 0;
+    else isRelease = rev[4] == 0;
 
-    info->flags = 0 /* master branch */ | (((isRelease) ? 1 : 0) << 1) /* is release */;
+    info->flags = 0 /* master branch */ | ((isRelease ? 1 : 0) << 1) /* is release */;
 
-    arm11SvcTable[0x2E] = 0xFFF00000 + freeK11Space - pos; //stubbed svc
-    freeK11Space += svcGetCFWInfo_size;
+    arm11SvcTable[0x2E] = 0xFFF00000 + *freeK11Space - pos; //Stubbed svc
+    (*freeK11Space) += svcGetCFWInfo_size;
 }
 
 void patchTitleInstallMinVersionCheck(u8 *pos, u32 size)
@@ -227,7 +194,7 @@ void applyLegacyFirmPatches(u8 *pos, FirmwareType firmType)
     /* Calculate the amount of patches to apply. Only count the boot screen patch for AGB_FIRM
        if the matching option was enabled (keep it as last) */
     u32 numPatches = firmType == TWL_FIRM ? (sizeof(twlPatches) / sizeof(patchData)) :
-                                            (sizeof(agbPatches) / sizeof(patchData) - !CONFIG(5));
+                                            (sizeof(agbPatches) / sizeof(patchData) - !CONFIG(6));
     const patchData *patches = firmType == TWL_FIRM ? twlPatches : agbPatches;
 
     //Patch
@@ -249,13 +216,15 @@ void applyLegacyFirmPatches(u8 *pos, FirmwareType firmType)
 
 void patchTwlBg(u8 *pos)
 {
-    u8 *dst = pos + ((isN3DS) ?  0xFEA4 : 0xFCA0);
-    u16 *src1 = (u16 *)(pos + ((isN3DS) ? 0xE38 : 0xE3C)), *src2 = (u16 *)(pos + ((isN3DS) ? 0xE54 : 0xE58));
-    memcpy(dst, twl_k11modules, twl_k11modules_size); //install k11 hook
+    u8 *dst = pos + (isN3DS ? 0xFEA4 : 0xFCA0);
+
+    memcpy(dst, twl_k11modules, twl_k11modules_size); //Install K11 hook
     
-    u32 *off;
-    for(off = (u32 *)dst; *off != 0xABCDABCD; off++);
-    *off = (isN3DS) ? 0xCDE88 : 0xCD5F8; //dev SRL launcher offset
+    u32 *off = (u32 *)memsearch(dst, "LAUN", twl_k11modules_size, 4);
+    *off = isN3DS ? 0xCDE88 : 0xCD5F8; //Dev SRL launcher offset
+
+    u16 *src1 = (u16 *)(pos + (isN3DS ? 0xE38 : 0xE3C)),
+        *src2 = (u16 *)(pos + (isN3DS ? 0xE54 : 0xE58));
     
     //Construct BLX instructions:
     src1[0] = 0xF000 | ((((u32)dst - (u32)src1 - 4) & (0xFFF << 11)) >> 12);

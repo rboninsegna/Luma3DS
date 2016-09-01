@@ -34,40 +34,29 @@
 #include "pin.h"
 #include "crypto.h"
 
-bool readPin(PINData *out)
-{
-    u8 __attribute__((aligned(4))) zeroes[16] = {0};
-    u8 __attribute__((aligned(4))) tmp[32] = {0};
-
-    if(fileRead(out, PIN_LOCATION) != sizeof(PINData)) return false;
-    if(memcmp(out->magic, "PINF", 4) != 0) return false;
-
-    computePINHash(tmp, zeroes, 1);
-
-    return memcmp(out->testHash, tmp, 32) == 0; //test vector verification (SD card has (or hasn't) been used on another console)
-}
-
-static inline char PINKeyToLetter(u32 pressed)
+static char pinKeyToLetter(u32 pressed)
 {
     const char keys[] = "AB--------XY";
 
     u32 i;
-    __asm__ volatile("clz %[i], %[pressed]" : [i] "=r" (i) : [pressed] "r" (pressed));
+    for(i = 31; pressed > 1; i--) pressed /= 2;
 
     return keys[31 - i];
 }
 
-void newPin(void)
+void newPin(bool allowSkipping)
 {
     clearScreens();
 
-    drawString("Enter your NEW PIN: ", 10, 10, COLOR_WHITE);
+    char *title = allowSkipping ? "Press START to skip or enter a new PIN" : "Enter a new PIN to proceed";
+    drawString(title, 10, 10, COLOR_TITLE);
+    drawString("PIN: ", 10, 10 + 2 * SPACING_Y, COLOR_WHITE);
 
-    // Set the default value as 0x00 so we can check if there are any unentered characters.
-    u8 __attribute__((aligned(4))) enteredPassword[16 * ((PIN_LENGTH + 15) / 16)] = {0}; // pad to AES block length
+    //Pad to AES block length with zeroes
+    u8 __attribute__((aligned(4))) enteredPassword[16 * ((PIN_LENGTH + 15) / 16)] = {0};
 
     u32 cnt = 0;
-    int charDrawPos = 20 * SPACING_X;
+    int charDrawPos = 5 * SPACING_X;
 
     while(cnt < PIN_LENGTH)
     {
@@ -76,46 +65,61 @@ void newPin(void)
         {
             pressed = waitInput();
         }
-        while(!(pressed & PIN_BUTTONS & ~BUTTON_START));
+        while(!(pressed & PIN_BUTTONS));
 
-        pressed &= PIN_BUTTONS & ~BUTTON_START;
+        pressed &= PIN_BUTTONS;
+        if(!allowSkipping) pressed &= ~BUTTON_START;
 
+        if(pressed & BUTTON_START) return;
         if(!pressed) continue;
-        char key = PINKeyToLetter(pressed);
-        enteredPassword[cnt++] = (u8)key; // add character to password.
 
-        // visualize character on screen.
-        drawCharacter(key, 10 + charDrawPos, 10, COLOR_WHITE);
+        char key = pinKeyToLetter(pressed);
+        enteredPassword[cnt++] = (u8)key; //Add character to password
+
+        //Visualize character on screen
+        drawCharacter(key, 10 + charDrawPos, 10 + 2 * SPACING_Y, COLOR_WHITE);
         charDrawPos += 2 * SPACING_X;
     }
 
-    PINData pin = {0};
-    u8 __attribute__((aligned(4))) tmp[32] = {0};
+    PINData pin;
+    u8 __attribute__((aligned(4))) tmp[32];
     u8 __attribute__((aligned(4))) zeroes[16] = {0};
 
     memcpy(pin.magic, "PINF", 4);
-    pin.formatVersionMajor = 1;
-    pin.formatVersionMinor = 0;
+    pin.formatVersionMajor = PIN_VERSIONMAJOR;
+    pin.formatVersionMinor = PIN_VERSIONMINOR;
 
-    computePINHash(tmp, zeroes, 1);
+    computePinHash(tmp, zeroes, 1);
     memcpy(pin.testHash, tmp, 32);
 
-    computePINHash(tmp, enteredPassword, (PIN_LENGTH + 15) / 16);
+    computePinHash(tmp, enteredPassword, (PIN_LENGTH + 15) / 16);
     memcpy(pin.hash, tmp, 32);
 
-    fileWrite(&pin, PIN_LOCATION, sizeof(PINData));
-    
-    while(HID_PAD & PIN_BUTTONS);
+    if(!fileWrite(&pin, PIN_LOCATION, sizeof(PINData)))
+        error("Error writing the PIN file");
 }
 
-void verifyPin(PINData *in)
+bool verifyPin(void)
 {
     initScreens();
 
-    drawString("Press START to shutdown or enter pin to proceed.", 10, 10, COLOR_WHITE);
-    drawString("Pin: ", 10, 10 + 2 * SPACING_Y, COLOR_WHITE);
+    PINData pin;
 
-    // Set the default characters as 0x00 so we can check if there are any unentered characters.
+    if(fileRead(&pin, PIN_LOCATION) != sizeof(PINData) ||
+       memcmp(pin.magic, "PINF", 4) != 0 ||
+       pin.formatVersionMajor != PIN_VERSIONMAJOR ||
+       pin.formatVersionMinor != PIN_VERSIONMINOR)
+        return false;
+
+    u8 __attribute__((aligned(4))) zeroes[16] = {0};
+    u8 __attribute__((aligned(4))) tmp[32];
+
+    computePinHash(tmp, zeroes, 1);
+
+    //Test vector verification (SD card has, or hasn't been used on another console)
+    if(memcmp(pin.testHash, tmp, 32) != 0) return false;
+
+    //Pad to AES block length with zeroes
     u8 __attribute__((aligned(4))) enteredPassword[16 * ((PIN_LENGTH + 15) / 16)] = {0};
 
     u32 cnt = 0;
@@ -124,6 +128,9 @@ void verifyPin(PINData *in)
 
     while(!unlock)
     {
+        drawString("Press START to shutdown or enter PIN to proceed", 10, 10, COLOR_TITLE);
+        drawString("PIN: ", 10, 10 + 2 * SPACING_Y, COLOR_WHITE);
+
         u32 pressed;
         do
         {
@@ -133,22 +140,21 @@ void verifyPin(PINData *in)
 
         if(pressed & BUTTON_START) mcuPowerOff();
 
-        pressed &= PIN_BUTTONS & ~BUTTON_START;
+        pressed &= PIN_BUTTONS;
+
         if(!pressed) continue;
 
-        char key = PINKeyToLetter(pressed);
-        enteredPassword[cnt++] = (u8)key; // add character to password.
+        char key = pinKeyToLetter(pressed);
+        enteredPassword[cnt++] = (u8)key; //Add character to password
 
-        // visualize character on screen.
+        //Visualize character on screen
         drawCharacter(key, 10 + charDrawPos, 10 + 2 * SPACING_Y, COLOR_WHITE);
         charDrawPos += 2 * SPACING_X;
 
         if(cnt >= PIN_LENGTH)
         {
-            u8 __attribute__((aligned(4))) tmp[32] = {0};
-
-            computePINHash(tmp, enteredPassword, (PIN_LENGTH + 15) / 16);
-            unlock = memcmp(in->hash, tmp, 32) == 0;
+            computePinHash(tmp, enteredPassword, (PIN_LENGTH + 15) / 16);
+            unlock = memcmp(pin.hash, tmp, 32) == 0;
 
             if(!unlock)
             {
@@ -157,10 +163,10 @@ void verifyPin(PINData *in)
 
                 clearScreens();
 
-                drawString("Press START to shutdown or enter pin to proceed.", 10, 10, COLOR_WHITE);
-                drawString("Pin: ", 10, 10 + 2 * SPACING_Y, COLOR_WHITE);
-                drawString("Wrong pin! Try again!", 10, 10 + 3 * SPACING_Y, COLOR_RED); 
+                drawString("Wrong PIN, try again", 10, 10 + 4 * SPACING_Y, COLOR_RED); 
             }
         }
     }
+
+    return true;
 }

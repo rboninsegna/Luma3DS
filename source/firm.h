@@ -24,6 +24,11 @@
 
 #include "types.h"
 
+#define CFG_BOOTENV    (*(vu32 *)0x10010000)
+#define CFG_UNITINFO   (*(vu8  *)0x10010010)
+#define PDN_MPCORE_CFG (*(vu32 *)0x10140FFC)
+#define PDN_SPI_CNT    (*(vu32 *)0x101401C0)
+
 //FIRM Header layout
 typedef struct firmSectionHeader {
     u32 offset;
@@ -41,17 +46,10 @@ typedef struct firmHeader {
     u8 reserved2[0x30];
     firmSectionHeader section[4];
 } firmHeader;
-
-typedef enum ConfigurationStatus
-{
-    DONT_CONFIGURE = 0,
-    MODIFY_CONFIGURATION = 1,
-    CREATE_CONFIGURATION = 2
-} ConfigurationStatus;
  
-static inline u32 loadFirm(FirmwareType firmType);
+static inline u32 loadFirm(FirmwareType *firmType, FirmwareSource firmSource);
 static inline void patchNativeFirm(u32 firmVersion, FirmwareSource nandType, u32 emuHeader, bool isA9lh);
 static inline void patchLegacyFirm(FirmwareType firmType);
-static inline void patchSafeFirm(void);
+static inline void patch1x2xNativeAndSafeFirm(void);
 static inline void copySection0AndInjectSystemModules(void);
 static inline void launchFirm(FirmwareType firmType);
