@@ -380,7 +380,7 @@ void patchCode(u64 progId, u8 *code, u32 size)
                 0xE0, 0x1E, 0xFF, 0x2F, 0xE1, 0x01, 0x01
             };
 
-            u8 mostRecentFpdVer = 0x06;
+            u8 mostRecentFpdVer = 0x07;
 
             u8 *fpdVer = memsearch(code, fpdVerPattern, size, sizeof(fpdVerPattern));
 
