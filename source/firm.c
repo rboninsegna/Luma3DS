@@ -265,10 +265,10 @@ static inline u32 loadFirm(FirmwareType *firmType, FirmwareSource firmSource)
     section = firm->section;
 
     const char *firmwareFiles[4] = {
-        "/luma/firmware.bin",
-        "/luma/firmware_twl.bin",
-        "/luma/firmware_agb.bin",
-        "/luma/firmware_safe.bin"
+        "/puma/firmware.bin",
+        "/puma/firmware_twl.bin",
+        "/puma/firmware_agb.bin",
+        "/puma/firmware_safe.bin"
     };
 
     //Load FIRM from CTRNAND
@@ -282,7 +282,7 @@ static inline u32 loadFirm(FirmwareType *firmType, FirmwareSource firmSource)
         {
             //We can't boot < 3.x EmuNANDs
             if(firmSource != FIRMWARE_SYSNAND) 
-                error("An old unsupported EmuNAND has been detected.\nLuma3DS is unable to boot it");
+                error("An old unsupported EmuNAND has been detected.\nPuma33DS is unable to boot it");
 
             if(BOOTCFG_SAFEMODE != 0) error("SAFE_MODE is not supported on 1.x/2.x FIRM");
 
@@ -299,7 +299,7 @@ static inline u32 loadFirm(FirmwareType *firmType, FirmwareSource firmSource)
         firmVersion = 0xFFFFFFFF;
     else
     {
-        if(loadFromSd) error("An old unsupported FIRM has been detected.\nCopy a valid firmware.bin in /luma to boot");
+        if(loadFromSd) error("An old unsupported FIRM has been detected.\nCopy a valid firmware.bin in /puma to boot");
         decryptExeFs((u8 *)firm);
     }
 
@@ -319,7 +319,7 @@ static inline u32 loadFirm(FirmwareType *firmType, FirmwareSource firmSource)
         {
             //We can't boot < 3.x EmuNANDs
             if(firmSource != FIRMWARE_SYSNAND) 
-                error("An old unsupported EmuNAND has been detected.\nLuma3DS is unable to boot it");
+                error("An old unsupported EmuNAND has been detected.\nPuma33DS is unable to boot it");
 
             if(BOOTCFG_SAFEMODE != 0) error("SAFE_MODE is not supported on 1.x/2.x FIRM");
 
@@ -329,8 +329,8 @@ static inline u32 loadFirm(FirmwareType *firmType, FirmwareSource firmSource)
         //We can't boot a 3.x/4.x NATIVE_FIRM, load one from SD
         else if(firmVersion < 0x25)
         {
-            if(!fileRead(firm, "/luma/firmware.bin", 0x400000) || section[2].address != (u8 *)0x8006800)
-                error("An old unsupported FIRM has been detected.\nCopy a valid firmware.bin in /luma to boot");
+            if(!fileRead(firm, "/puma/firmware.bin", 0x400000) || section[2].address != (u8 *)0x8006800)
+                error("An old unsupported FIRM has been detected.\nCopy a valid firmware.bin in /puma to boot");
 
             //No assumption regarding FIRM version
             firmVersion = 0xFFFFFFFF;
@@ -492,7 +492,7 @@ static inline void copySection0AndInjectSystemModules(FirmwareType firmType)
         srcModuleSize = *(u32 *)(src + 0x104) * 0x200;
         const char *moduleName = (char *)(src + 0x200);
 
-        char fileName[30] = "/luma/sysmodules/";
+        char fileName[30] = "/puma/sysmodules/";
         const char *ext = ".cxi";
 
         //Read modules from files if they exist

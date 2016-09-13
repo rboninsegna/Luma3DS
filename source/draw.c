@@ -36,8 +36,8 @@ static bool bottomScreenSelected = false;
 
 bool loadSplash(void)
 {
-    u32 topSplashSize = getFileSize("/luma/splash.bin"),
-        bottomSplashSize = getFileSize("/luma/splashbottom.bin");
+    u32 topSplashSize = getFileSize("/puma/splash.bin"),
+        bottomSplashSize = getFileSize("/puma/splashbottom.bin");
 
     bool isTopSplashValid = topSplashSize == SCREEN_TOP_FBSIZE,
          isBottomSplashValid = bottomSplashSize == SCREEN_BOTTOM_FBSIZE;
@@ -48,8 +48,8 @@ bool loadSplash(void)
 
     initScreens();
 
-    if(isTopSplashValid) fileRead(fb->top_left, "/luma/splash.bin", topSplashSize);
-    if(isBottomSplashValid) fileRead(fb->bottom, "/luma/splashbottom.bin", bottomSplashSize);
+    if(isTopSplashValid) fileRead(fb->top_left, "/puma/splash.bin", topSplashSize);
+    if(isBottomSplashValid) fileRead(fb->bottom, "/puma/splashbottom.bin", bottomSplashSize);
 
     chrono(3);
 
