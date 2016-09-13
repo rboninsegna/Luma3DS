@@ -265,10 +265,10 @@ static inline u32 loadFirm(FirmwareType *firmType, FirmwareSource firmSource)
     section = firm->section;
 
     const char *firmwareFiles[4] = {
-        "/puma/firmware.bin",
-        "/puma/firmware_twl.bin",
-        "/puma/firmware_agb.bin",
-        "/puma/firmware_safe.bin"
+        "/homebrew/cfw/puma/firmware.bin",
+        "/homebrew/cfw/puma/firmware_twl.bin",
+        "/homebrew/cfw/puma/firmware_agb.bin",
+        "/homebrew/cfw/puma/firmware_safe.bin"
     };
 
     //Load FIRM from CTRNAND
@@ -299,7 +299,7 @@ static inline u32 loadFirm(FirmwareType *firmType, FirmwareSource firmSource)
         firmVersion = 0xFFFFFFFF;
     else
     {
-        if(loadFromSd) error("An old unsupported FIRM has been detected.\nCopy a valid firmware.bin in /puma to boot");
+        if(loadFromSd) error("An old unsupported FIRM has been detected.\nCopy a valid firmware.bin in\n  /homebrew/cfw/puma to boot");
         decryptExeFs((u8 *)firm);
     }
 
@@ -329,8 +329,8 @@ static inline u32 loadFirm(FirmwareType *firmType, FirmwareSource firmSource)
         //We can't boot a 3.x/4.x NATIVE_FIRM, load one from SD
         else if(firmVersion < 0x25)
         {
-            if(!fileRead(firm, "/puma/firmware.bin", 0x400000) || section[2].address != (u8 *)0x8006800)
-                error("An old unsupported FIRM has been detected.\nCopy a valid firmware.bin in /puma to boot");
+            if(!fileRead(firm, "/homebrew/cfw/puma/firmware.bin", 0x400000) || section[2].address != (u8 *)0x8006800)
+                error("An old unsupported FIRM has been detected.\nCopy a valid firmware.bin in\n  /homebrew/cfw/puma to boot");
 
             //No assumption regarding FIRM version
             firmVersion = 0xFFFFFFFF;
@@ -492,7 +492,7 @@ static inline void copySection0AndInjectSystemModules(FirmwareType firmType)
         srcModuleSize = *(u32 *)(src + 0x104) * 0x200;
         const char *moduleName = (char *)(src + 0x200);
 
-        char fileName[30] = "/puma/sysmodules/";
+        char fileName[30] = "/homebrew/cfw/puma/sysmodules/";
         const char *ext = ".cxi";
 
         //Read modules from files if they exist

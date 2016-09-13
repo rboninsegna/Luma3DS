@@ -35,8 +35,8 @@
 bool loadSplash(void)
 {
 
-    const char *topSplashPath = "/puma/splash.bin",
-               *bottomSplashPath = "/puma/splashbottom.bin";
+    const char *topSplashPath = "/homebrew/cfw/puma/splash.bin",
+               *bottomSplashPath = "/homebrew/cfw/puma/splashbottom.bin";
 
     bool isTopSplashValid = getFileSize(topSplashPath) == SCREEN_TOP_FBSIZE,
          isBottomSplashValid = getFileSize(bottomSplashPath) == SCREEN_BOTTOM_FBSIZE;

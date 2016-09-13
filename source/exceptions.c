@@ -176,7 +176,7 @@ void detectAndProcessExceptionDumps(void)
 
         char path[42];
         char fileName[] = "crash_dump_00000000.dmp";
-        const char *pathFolder = dumpHeader->processor == 9 ? "/puma/dumps/arm9" : "/puma/dumps/arm11";
+        const char *pathFolder = dumpHeader->processor == 9 ? "/homebrew/cfw/puma/dumps/arm9" : "/homebrew/cfw/puma/dumps/arm11";
 
         findDumpFile(pathFolder, fileName);
         memcpy(path, pathFolder, strlen(pathFolder) + 1);

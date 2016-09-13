@@ -69,10 +69,10 @@ static bool secureInfoExists(void)
 
 static void loadTitleCodeSection(u64 progId, u8 *code, u32 size)
 {
-    /* Here we look for "/puma/code_sections/[u64 titleID in hex, uppercase].bin"
+    /* Here we look for "/homebrew/cfw/puma/code_sections/[u64 titleID in hex, uppercase].bin"
        If it exists it should be a decompressed binary code file */
 
-    char path[] = "/puma/code_sections/0000000000000000.bin";
+    char path[] = "/homebrew/cfw/puma/code_sections/0000000000000000.bin";
     progIdToStr(path + 35, progId);
 
     IFile file;
@@ -94,10 +94,10 @@ static void loadTitleCodeSection(u64 progId, u8 *code, u32 size)
 
 static int loadTitleLocaleConfig(u64 progId, u8 *regionId, u8 *languageId)
 {
-    /* Here we look for "/puma/locales/[u64 titleID in hex, uppercase].txt"
+    /* Here we look for "/homebrew/cfw/puma/locales/[u64 titleID in hex, uppercase].txt"
        If it exists it should contain, for example, "EUR IT" */
 
-    char path[] = "/puma/locales/0000000000000000.txt";
+    char path[] = "/homebrew/cfw/puma/locales/0000000000000000.txt";
     progIdToStr(path + 29, progId);
 
     IFile file;
@@ -140,9 +140,9 @@ static int loadTitleLocaleConfig(u64 progId, u8 *regionId, u8 *languageId)
 
 static int loadCountryConfig(char *countryString)
 {
-    /* Here we look for "/puma/locales/country.txt"
+    /* Here we look for "/homebrew/cfw/puma/locales/country.txt"
        If it exists it should contain, for example, "GB" */
-    char path[] = "/puma/locales/country.txt";
+    char path[] = "/homebrew/cfw/puma/locales/country.txt";
 
     IFile file;
     Result ret = fileOpen(&file, ARCHIVE_SDMC, path, FS_OPEN_READ);

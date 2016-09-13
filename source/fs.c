@@ -116,7 +116,7 @@ void loadPayload(u32 pressed)
 
     DIR dir;
     FILINFO info;
-    char path[28] = "/puma/payloads";
+    char path[28] = "/homebrew/cfw/puma/payloads";
 
     FRESULT result = f_findfirst(&dir, &info, path, pattern);
 

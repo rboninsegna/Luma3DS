@@ -28,7 +28,7 @@
 #define MULTICONFIG(a)   ((configData.config >> (a * 2 + 7)) & 3)
 #define BOOTCONFIG(a, b) ((configData.config >> a) & b)
 
-#define CONFIG_PATH         "/puma/config.bin"
+#define CONFIG_PATH         "/homebrew/cfw/puma/config.bin"
 #define CONFIG_VERSIONMAJOR 8
 #define CONFIG_VERSIONMINOR 0
 

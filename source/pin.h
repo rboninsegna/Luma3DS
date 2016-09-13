@@ -28,7 +28,7 @@
 
 #include "types.h"
 
-#define PIN_PATH         "/puma/pin.bin"
+#define PIN_PATH         "/homebrew/cfw/puma/pin.bin"
 #define PIN_VERSIONMAJOR 1
 #define PIN_VERSIONMINOR 2
 

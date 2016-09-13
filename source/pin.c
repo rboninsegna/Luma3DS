@@ -132,7 +132,7 @@ bool verifyPin(void)
     u8 cnt = 0;
     int charDrawPos = 16 * SPACING_X;
 
-    const char *messagePath = "/puma/pinmessage.txt";
+    const char *messagePath = "/homebrew/cfw/puma/pinmessage.txt";
 
     u32 messageSize = getFileSize(messagePath);
     if(messageSize > 0 && messageSize < 800)

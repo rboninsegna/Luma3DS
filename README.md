@@ -45,7 +45,7 @@ My policy is to have the major version matching the release number in which feat
 ### Region spoofing
 
 1. Create a text file: 3 characters uppercase region, a space, 2 characters uppercase language. Any further characters, including line breaks, are ignored.
-2. Save as /puma/locales/[u64 titleID in hex, uppercase].txt
+2. Save as /homebrew/cfw/puma/locales/[u64 titleID in hex, uppercase].txt
 3. Make sure the appropriate option is enabled, and that you're working on a regular app (title ID 00040000-*)
 
 Possible regions: JPN, USA, EUR, AUS (unused), CHN, KOR, TWN
@@ -61,14 +61,14 @@ Note, not all possible region-language pairs are supported. This means:
 ### Code replacement
 
 1. Create custom code.bin
-2. Save as /puma/code_sections/[u64 titleID in hex, uppercase].bin
+2. Save as /homebrew/cfw/puma/code_sections/[u64 titleID in hex, uppercase].bin
 3. Make sure the appropriate option is enabled, and that you're working on a regular app (title ID 00040000-*)
 
 
 ### eShop country spoofing
 
 1. Create a text file: 2 characters uppercase country name. Any further characters, including line breaks, are ignored.
-2. Save as /puma/locales/country.txt
+2. Save as /homebrew/cfw/puma/locales/country.txt
 3. Make sure the region spoofing option is enabled too. 
 
 
@@ -82,7 +82,7 @@ Just download its source, `make` it, then replace devKitPro/libctru/* with the p
 You will also need [armips](https://github.com/Kingcom/armips), [bin2c](https://sourceforge.net/projects/bin2c/), and a recent build of [makerom](https://github.com/profi200/Project_CTR) added to your PATH (for example, in devkitARM/bin/).
 For your convenience, here are [Windows](http://www91.zippyshare.com/v/ePGpjk9r/file.html) and [Linux](https://mega.nz/#!uQ1T1IAD!Q91O0e12LXKiaXh_YjXD3D5m8_W3FuMI-hEa6KVMRDQ) builds of armips (thanks to who compiled them!).  
 
-Then clone the repository recursively with: `git clone --recursive https://github.com/rboninsegna/Puma33DS.git`
+Then clone the repository recursively with: `git clone --recursive https://github.com/rboninsegna/homebrew/cfw/puma33DS.git`
 
 Finally just run `make a9lh` and everything should work!
 
