@@ -69,10 +69,10 @@ static bool secureInfoExists(void)
 
 static void loadTitleCodeSection(u64 progId, u8 *code, u32 size)
 {
-    /* Here we look for "/luma/code_sections/[u64 titleID in hex, uppercase].bin"
+    /* Here we look for "/puma/code_sections/[u64 titleID in hex, uppercase].bin"
        If it exists it should be a decompressed binary code file */
 
-    char path[] = "/luma/code_sections/0000000000000000.bin";
+    char path[] = "/puma/code_sections/0000000000000000.bin";
     progIdToStr(path + 35, progId);
 
     IFile file;
@@ -94,10 +94,10 @@ static void loadTitleCodeSection(u64 progId, u8 *code, u32 size)
 
 static int loadTitleLocaleConfig(u64 progId, u8 *regionId, u8 *languageId)
 {
-    /* Here we look for "/luma/locales/[u64 titleID in hex, uppercase].txt"
+    /* Here we look for "/puma/locales/[u64 titleID in hex, uppercase].txt"
        If it exists it should contain, for example, "EUR IT" */
 
-    char path[] = "/luma/locales/0000000000000000.txt";
+    char path[] = "/puma/locales/0000000000000000.txt";
     progIdToStr(path + 29, progId);
 
     IFile file;
@@ -135,6 +135,27 @@ static int loadTitleLocaleConfig(u64 progId, u8 *regionId, u8 *languageId)
         }
     }
 
+    return ret;
+}
+
+static int loadCountryConfig(char *countryString)
+{
+    /* Here we look for "/puma/locales/country.txt"
+       If it exists it should contain, for example, "GB" */
+    char path[] = "/puma/locales/country.txt";
+
+    IFile file;
+    Result ret = fileOpen(&file, ARCHIVE_SDMC, path, FS_OPEN_READ);
+    if(R_SUCCEEDED(ret))
+    {
+        u64 total;
+
+        ret = IFile_Read(&file, &total, countryString, 2);
+        IFile_Close(&file);
+
+        if(!R_SUCCEEDED(ret) || total < 2) return -1;
+		return 0;
+	}
     return ret;
 }
 
@@ -270,12 +291,13 @@ void patchCode(u64 progId, u8 *code, u32 size)
             };
 
             //Patch SMDH region checks
-            patchMemory(code, size, 
-                regionFreePattern, 
-                sizeof(regionFreePattern), -16, 
-                regionFreePatch, 
-                sizeof(regionFreePatch), 1
-            );
+			if(CONFIG(REGIONFREE))
+				patchMemory(code, size, 
+					regionFreePattern, 
+					sizeof(regionFreePattern), -16, 
+					regionFreePatch, 
+					sizeof(regionFreePatch), 1
+				);
 
             break;
         }
@@ -290,12 +312,13 @@ void patchCode(u64 progId, u8 *code, u32 size)
             };
 
             //Block silent auto-updates
-            patchMemory(code, size, 
-                blockAutoUpdatesPattern, 
-                sizeof(blockAutoUpdatesPattern), 0, 
-                blockAutoUpdatesPatch, 
-                sizeof(blockAutoUpdatesPatch), 1
-            );
+			if(CONFIG(PREVENTUPDATES))
+				patchMemory(code, size, 
+					blockAutoUpdatesPattern, 
+					sizeof(blockAutoUpdatesPattern), 0, 
+					blockAutoUpdatesPatch, 
+					sizeof(blockAutoUpdatesPatch), 1
+				);
 
             //Apply only if the user booted with R
             if((BOOTCFG_NAND != 0) != (BOOTCFG_FIRM != 0))
@@ -308,13 +331,45 @@ void patchCode(u64 progId, u8 *code, u32 size)
                 };
 
                 //Skip update checks to access the EShop
-                patchMemory(code, size, 
-                    skipEshopUpdateCheckPattern, 
-                    sizeof(skipEshopUpdateCheckPattern), 0, 
-                    skipEshopUpdateCheckPatch, 
-                    sizeof(skipEshopUpdateCheckPatch), 1
-                );
+				if(CONFIG(PREVENTUPDATES))
+					patchMemory(code, size, 
+						skipEshopUpdateCheckPattern, 
+						sizeof(skipEshopUpdateCheckPattern), 0, 
+						skipEshopUpdateCheckPatch, 
+						sizeof(skipEshopUpdateCheckPatch), 1
+					);
             }
+			
+			
+			//eShop country forcer, by Yifan Lu
+			static const char eshopCountryPattern[] = {
+			  0x01, 0x20, 0x01, 0x90,
+			  0x22, 0x46, 0x06, 0x9B
+			};
+			static const char eshopCountryPatchBase[] = {
+				0x06, 0x9A, 0x03, 0x20, 
+				0x90, 0x47, 0x55, 0x21, 
+				0x01, 0x70, 0x53, 0x21, 
+				0x41, 0x70, 0x00, 0x21, 
+				0x81, 0x70, 0x60, 0x61, 
+				0x00, 0x20
+			};
+			char country[3];
+			char eshopCountryPatch[sizeof(eshopCountryPatchBase)];
+			
+			if (CONFIG(USELANGEMUANDCODE) && (!loadCountryConfig(country))) { //country.txt loaded OK?			
+				// Yes: finish assembling the patch
+				memcpy(eshopCountryPatch, eshopCountryPatchBase, sizeof(eshopCountryPatchBase));
+				eshopCountryPatch[6] = country[0];
+				eshopCountryPatch[10] = country[1];
+				patchMemory(code, size, 
+					eshopCountryPattern, 
+					sizeof(eshopCountryPattern), 0, 
+					eshopCountryPatch, 
+					sizeof(eshopCountryPatch), 1
+				);
+			}
+
 
             break;
         }
@@ -330,7 +385,8 @@ void patchCode(u64 progId, u8 *code, u32 size)
             u8 *fpdVer = memsearch(code, fpdVerPattern, size, sizeof(fpdVerPattern));
 
             //Allow online access to work with old friends modules, without breaking newer firmwares
-            if(fpdVer != NULL && fpdVer[9] < mostRecentFpdVer) fpdVer[9] = mostRecentFpdVer;
+            if( CONFIG(PREVENTUPDATES) && (fpdVer != NULL && fpdVer[9] < mostRecentFpdVer) )
+				fpdVer[9] = mostRecentFpdVer;
 
             break;
         }
@@ -390,12 +446,33 @@ void patchCode(u64 progId, u8 *code, u32 size)
             };
 
             //Disable updates from foreign carts (makes carts region-free)
-            patchMemory(code, size, 
-                stopCartUpdatesPattern, 
-                sizeof(stopCartUpdatesPattern), 0, 
-                stopCartUpdatesPatch,
-                sizeof(stopCartUpdatesPatch), 2
-            );
+			if( CONFIG(REGIONFREE) || CONFIG(PREVENTUPDATES) )
+				patchMemory(code, size, 
+					stopCartUpdatesPattern, 
+					sizeof(stopCartUpdatesPattern), 0, 
+					stopCartUpdatesPatch,
+					sizeof(stopCartUpdatesPatch), 2
+				);
+				
+			//Force TestMenu to load (thanks to Reisyukaku)	
+				static const u8 forceHOMEMenuTIDPattern[] = {
+					/* ldr r0, =0x101 */
+					0xbc, 0x00, 0x9f, 0xe5,
+					/* bl getRegionSpecificAppID */
+					0x52, 0x45, 0x00, 0xeb
+				};
+				static const u8 forceHOMEMenuTIDPatch[] = {
+					/* mov r0, r9 (== 0x00008102) */
+					0x09, 0x10, 0xa0, 0xe1,
+					/* mov r1, r8 (== 0x00040030) */
+					0x08, 0x00, 0xa0, 0xe1
+				};
+				if(CONFIG(TESTMENU))
+					patchMemory(code, size,
+						forceHOMEMenuTIDPattern, sizeof(forceHOMEMenuTIDPattern), 0,
+						forceHOMEMenuTIDPatch, sizeof(forceHOMEMenuTIDPatch), 1
+					);	
+
 
             u32 cpuSetting = MULTICONFIG(NEWCPU);
 
@@ -428,12 +505,13 @@ void patchCode(u64 progId, u8 *code, u32 size)
             };
 
             //Disable SecureInfo signature check
-            patchMemory(code, size, 
-                secureinfoSigCheckPattern, 
-                sizeof(secureinfoSigCheckPattern), 0, 
-                secureinfoSigCheckPatch, 
-                sizeof(secureinfoSigCheckPatch), 1
-            );
+			if(CONFIG(SECUREINFO))
+				patchMemory(code, size, 
+					secureinfoSigCheckPattern, 
+					sizeof(secureinfoSigCheckPattern), 0, 
+					secureinfoSigCheckPatch, 
+					sizeof(secureinfoSigCheckPatch), 1
+				);
 
             if(secureInfoExists())
             {
@@ -441,13 +519,14 @@ void patchCode(u64 progId, u8 *code, u32 size)
                 static const u16 secureinfoFilenamePatch[] = u"C";
 
                 //Use SecureInfo_C
-                patchMemory(code, size, 
-                    secureinfoFilenamePattern, 
-                    sizeof(secureinfoFilenamePattern) - sizeof(u16),
-                    sizeof(secureinfoFilenamePattern) - sizeof(u16), 
-                    secureinfoFilenamePatch, 
-                    sizeof(secureinfoFilenamePatch) - sizeof(u16), 2
-                );
+				if(CONFIG(SECUREINFO))
+					patchMemory(code, size, 
+						secureinfoFilenamePattern, 
+						sizeof(secureinfoFilenamePattern) - sizeof(u16),
+						sizeof(secureinfoFilenamePattern) - sizeof(u16), 
+						secureinfoFilenamePatch, 
+						sizeof(secureinfoFilenamePatch) - sizeof(u16), 2
+					);
             }
 
             break;

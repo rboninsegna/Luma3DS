@@ -75,12 +75,16 @@ void configMenu(bool oldPinStatus)
 #endif
                                       };
 
-    const char *singleOptionsText[] = { "( ) Autoboot SysNAND",//0
-                                        "( ) Use SysNAND FIRM if booting with R (A9LH)",//1
-                                        "( ) Region/language/country emu. + ext. .code",//2
-                                        "( ) Show current NAND in System Settings",//3
-                                        "( ) Show GBA boot screen in patched AGB_FIRM",//4
-                                        "( ) Display splash screen before payloads",//5
+    const char *singleOptionsText[] = { "( ) Autoboot SysNAND",
+                                        "( ) Use SysNAND FIRM if booting with R (A9LH)",
+                                        "( ) Region/language/country emu. + ext. .code",
+                                        "( ) Show current NAND in System Settings",
+                                        "( ) Show GBA boot screen in patched AGB_FIRM",
+                                        "( ) Display splash screen before payloads",
+										"( ) Region free Home",
+										"( ) Block auto/mandatory updates",
+										"( ) SecureInfo_C and unsigned SI_A support",
+										"( ) Force TestMenu instead of Home"
 #ifdef DEV
                                       , "( ) Patch SVC/service/archive/ARM9 access"
 #endif
