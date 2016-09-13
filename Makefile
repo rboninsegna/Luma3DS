@@ -22,8 +22,6 @@ dir_injector := injector
 dir_exceptions := exceptions
 dir_arm9_exceptions := $(dir_exceptions)/arm9
 dir_arm11_exceptions := $(dir_exceptions)/arm11
-dir_mset := CakeHax
-dir_ninjhax := CakeBrah
 dir_build := build
 dir_out := out
 
@@ -47,16 +45,10 @@ title := \"$(name) $(revision) configuration\"
 endif
 
 .PHONY: all
-all: launcher a9lh ninjhax
-
-.PHONY: launcher
-launcher: $(dir_out)/$(name).dat
+all: a9lh
 
 .PHONY: a9lh
 a9lh: $(dir_out)/arm9loaderhax.bin
-
-.PHONY: ninjhax
-ninjhax: $(dir_out)/3ds/$(name)
 
 .PHONY: release
 ifeq ($(strip $(DEV)),TRUE)
@@ -67,8 +59,6 @@ endif
 
 .PHONY: clean
 clean:
-	@$(MAKE) $(FLAGS) -C $(dir_mset) clean
-	@$(MAKE) $(FLAGS) -C $(dir_ninjhax) clean
 	@$(MAKE) -C $(dir_loader) clean
 	@$(MAKE) -C $(dir_arm9_exceptions) clean
 	@$(MAKE) -C $(dir_arm11_exceptions) clean	
@@ -78,22 +68,14 @@ clean:
 $(dir_out):
 	@mkdir -p "$(dir_out)"
 
-$(dir_out)/$(name).dat: $(dir_build)/main.bin $(dir_out)
-	@$(MAKE) $(FLAGS) -C $(dir_mset) launcher
-	@dd if=$(dir_build)/main.bin of=$@ bs=512 seek=144
 
 $(dir_out)/arm9loaderhax.bin: $(dir_build)/main.bin $(dir_out)
 	@cp -a $(dir_build)/main.bin $@
 
-$(dir_out)/3ds/$(name): $(dir_out)
-	@mkdir -p "$@"
-	@$(MAKE) $(FLAGS) -C $(dir_ninjhax)
-	@mv $(dir_out)/$(name).3dsx $(dir_out)/$(name).smdh $@
-
-$(dir_out)/$(name)$(revision).7z: launcher a9lh ninjhax
+$(dir_out)/$(name)$(revision).7z: a9lh
 	@7z a -mx $@ ./$(@D)/*
 
-$(dir_out)/$(name)$(revision)-dev.7z: launcher a9lh ninjhax
+$(dir_out)/$(name)$(revision)-dev.7z: a9lh
 	@7z a -mx $@ ./$(@D)/* ./$(dir_exceptions)/exception_dump_parser.py
 
 $(dir_build)/main.bin: $(dir_build)/main.elf
