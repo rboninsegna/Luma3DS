@@ -40,7 +40,7 @@ The internal layout is still Luma-compatible.
 
 My policy is to have the major version matching the release number in which features were actually added or removed.
 
-## "Enable region/language emulation and ext. .code"?
+## "Region/language/country emulation + ext. .code"?
 
 ### Region spoofing
 
@@ -71,6 +71,11 @@ Note, not all possible region-language pairs are supported. This means:
 2. Save as /puma/locales/country.txt
 3. Make sure the region spoofing option is enabled too. 
 
+## Custom version string
+
+1. Create a text file containing a printf-compatible format string of up to 19 characters. The default is `Ver. %d.%d.%d-%d%ls`.
+2. Save as /puma/customversion.txt
+3. Make sure the System Settings version string option is enabled too.
 
 ## Compiling
 
