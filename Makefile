@@ -26,23 +26,16 @@ dir_build := build
 dir_out := out
 
 ASFLAGS := -mcpu=arm946e-s
-CFLAGS := -Wall -Wextra -MMD -MP -marm $(ASFLAGS) -fno-builtin -fshort-wchar -std=c11 -Wno-main -O2 -flto -ffast-math
+CFLAGS := -Wall -Wextra -MMD -MP -marm $(ASFLAGS) -fno-builtin -fshort-wchar -std=c11 -Wno-main -O2 -flto -ffast-math -DDEV
 LDFLAGS := -nostartfiles
-FLAGS := name=$(name).dat dir_out=$(abspath $(dir_out)) ICON=$(abspath icon.png) APP_DESCRIPTION="Noob-friendly 3DS CFW." APP_AUTHOR="Aurora Wright/TuxSH" --no-print-directory
 
 objects = $(patsubst $(dir_source)/%.s, $(dir_build)/%.o, \
           $(patsubst $(dir_source)/%.c, $(dir_build)/%.o, \
           $(call rwildcard, $(dir_source), *.s *.c)))
 
-bundled = $(dir_build)/rebootpatch.h $(dir_build)/emunandpatch.h $(dir_build)/svcGetCFWInfopatch.h $(dir_build)/injector.h $(dir_build)/loader.h
+bundled = $(dir_build)/rebootpatch.h $(dir_build)/emunandpatch.h $(dir_build)/svcGetCFWInfopatch.h $(dir_build)/injector.h $(dir_build)/loader.h $(dir_build)/k11modulespatch.h $(dir_build)/arm9_exceptions.h $(dir_build)/arm11_exceptions.h
 
-ifeq ($(strip $(DEV)),TRUE)
-CFLAGS += -DDEV
-bundled += $(dir_build)/k11modulespatch.h $(dir_build)/arm9_exceptions.h $(dir_build)/arm11_exceptions.h
-title := \"$(name) $(revision) (dev) configuration\"
-else
 title := \"$(name) $(revision) configuration\"
-endif
 
 .PHONY: all
 all: a9lh
