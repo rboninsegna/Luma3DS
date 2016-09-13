@@ -29,8 +29,8 @@
 #define BOOTCONFIG(a, b) ((configData.config >> a) & b)
 
 #define CONFIG_PATH         "/puma/config.bin"
-#define CONFIG_VERSIONMAJOR 1
-#define CONFIG_VERSIONMINOR 3
+#define CONFIG_VERSIONMAJOR 8
+#define CONFIG_VERSIONMINOR 0
 
 #define BOOTCFG_NAND         BOOTCONFIG(0, 7)
 #define BOOTCFG_FIRM         BOOTCONFIG(3, 1)
