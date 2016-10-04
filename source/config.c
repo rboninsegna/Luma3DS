@@ -119,15 +119,15 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
                                           "Select the developer features.\n\n"
                                           "\t* 'Off' disables exception handlers.\n"
                                           "\t* 'ErrDisp' displays debug info\n"
-                                          "on the 'An error has occurred' screen.\n"
-                                          "\t* 'UNITINFO' makes the console be always\n"
-                                          "detected as a development unit (which\n"
-                                          "breaks online features and Amiibos\n"
-                                          "but enhances some dev apps).",
+                                          "on the 'An error has occurred' screen.\n" //length of a line
+                                          "\t* 'UNITINFO' makes the console be\n"
+                                          "always detected as a development unit,\n"
+                                          "which breaks online features and\n"
+                                          "Amiibos but enhances some dev apps).",
 
                                           "If enabled SysNAND will be launched on\n"
-                                          "boot. Otherwise, an EmuNAND will.\n"
-                                          "Hold L on boot to override.\n"
+                                          "boot. Otherwise, an EmuNAND will.\n\n"
+                                          "Hold L on boot to override.\n\n"
                                           "To use a different EmuNAND from the\n"
                                           "default, hold a directional pad button\n"
                                           "(Up/Right/Down/Left equal EmuNANDs\n"
@@ -174,7 +174,7 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
                                           "(check the Readme for instructions)",
 
                                           "Show the GBA boot screen when\n"
-                                          "launching GBA games.\n"
+                                          "launching GBA games.\n\n"
 										  "(Breaks bad ROMs with an incorrect\n"
 										  "Nintendo logo)",
 
@@ -188,10 +188,10 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
 										  
 										  "Make foreign titles visible on HOME\n"//regionfree
                                           "(and block card updates).\n"
-										  "* Some applications may also need\n"
-										  "   language/region spoofing to work.\n"
-										  "* Causes black squares to be visible\n"
-										  "   on <9.0 HOME versions.",
+										  "\t* Some applications may also need\n"
+										  "language/region spoofing to work.\n"
+										  "\t* Causes black squares to appear\n"
+										  "on <9.0 HOME versions.",
 										  
 										  "Blocks automatic update downloads\n"//antiupdate
                                           " (\"nag screen\").\n"
@@ -210,6 +210,7 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
 										  "Requires TestMenu to be installed,\n"
 										  "and for best results, DevMenu too"
                                        };
+
 
     struct multiOption {
         u32 posXs[4];
