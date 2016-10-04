@@ -149,10 +149,12 @@ void configMenu(bool oldPinStatus, u32 oldPinMode)
                                           "Kernels (and cetk, if encrypted)\n"
 										  "will also be loaded from /puma/\n"
 										  "firmware{|_twl|_agb|_safe}.bin and\n" 
-										  "cetk{|_twl|_agb|_safe}"),
+										  "cetk{|_twl|_agb|_safe}",
 
                                           "Activate built-in pathchanger.\n\n"
-                                          "(check the Readme for instructions)",
+                                          "To use this option, you must type\n"
+										  "the new path of Puma33DS's .bin\n"
+										  "into /puma/path.txt.",
 
                                           "Enable overriding the region and\n"
                                           "language configuration and the usage\n"
