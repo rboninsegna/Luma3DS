@@ -64,84 +64,102 @@ void writeConfig(ConfigurationStatus needConfig, u32 configTemp)
     }
 }
 
-void configMenu(bool oldPinStatus)
+void configMenu(bool oldPinStatus, u32 oldPinMode)
 {
     const char *multiOptionsText[]  = { "Default EmuNAND: 1( ) 2( ) 3( ) 4( )",
                                         "Screen brightness: 4( ) 3( ) 2( ) 1( )",
+                                        "Splash: Off( ) Before( ) After( ) payloads",
                                         "PIN lock: Off( ) 4( ) 6( ) 8( ) digits",
-                                        "New 3DS CPU: Off( ) Clock( ) L2( ) Clock+L2( )"
-#ifdef DEV
-                                      , "Dev. features: ErrDisp( ) UNITINFO( ) Off( )"
-#endif
+                                        "New 3DS CPU: Off( ) Clock( ) L2( ) Clock+L2( )",
+                                        "Dev. features: Off( ) ErrDisp( ) UNITINFO( )"
                                       };
 
     const char *singleOptionsText[] = { "( ) Autoboot SysNAND",
                                         "( ) Use SysNAND FIRM if booting with R (A9LH)",
-                                        "( ) Region/language/country emu. + ext. .code",
-                                        "( ) Version string patch for System Settings",
+                                        "( ) Enable FIRMs and modules loading from SD",
+                                        "( ) Use custom path",
+                                        "( ) Enable region/language emu. and ext. .code",
+                                        "( ) Show NAND or user string in System Settings",
                                         "( ) Show GBA boot screen in patched AGB_FIRM",
-                                        "( ) Display splash screen before payloads",
+                                        "( ) Patch SVC/service/archive/ARM9 access",
 										"( ) Region free Home",
 										"( ) Block auto/mandatory updates",
 										"( ) SecureInfo_C and unsigned SI_A support",
 										"( ) Force TestMenu instead of Home"
-#ifdef DEV
-                                      , "( ) Patch SVC/service/archive/ARM9 access"
-#endif
                                       };
 
-    const char *optionsDescription[]  = { "Select the default EmuNAND.\n"
-                                          "It will booted with no directional pad\n"
-                                          "buttons pressed (if EmuNAND is used)",
+    const char *optionsDescription[]  = { "Select the default EmuNAND.\n\n"
+                                          "It will be booted when no\n"
+                                          "directional pad buttons are pressed.",
 
-                                          "Select the screen brightness\n"
-										  "for splashes, this menu, and payloads.",
+                                          "Select the screen brightness.",
 
-                                          "Activate a PIN lock.\n"
+                                          "Enable splash screen support.\n\n"
+                                          "\t* 'Before payloads' displays it\n"
+                                          "before booting payloads\n"
+                                          "(intended for splashes that display\n"
+                                          "button hints).\n\n"
+                                          "\t* 'After payloads' displays it\n"
+                                          "afterwards.",
+
+                                          "Activate a PIN lock.\n\n"
                                           "The PIN will be asked each time\n"
                                           "Puma33DS boots.\n"
                                           "4, 6 or 8 digits can be selected.\n"
                                           "The ABXY buttons and the directional\n"
-                                          "pad can be used as keys",
+                                          "pad buttons can be used as keys.\n\n"
+                                          "A message can also be displayed\n"
+                                          "by creating /puma/pinmessage.txt.",
 
-                                          "Select the New 3DS CPU mode.\n"
-                                          "It will be always enabled.\n"
+                                          "Select the New 3DS CPU mode.\n\n"
+                                          "It will be always enabled.\n\n"
                                           "'Clock+L2' can cause issues with some\n"
-                                          "games",
-#ifdef DEV
-                                          "Select the developer features.\n"
-                                          "'ErrDisp' displays debug information\n"
+                                          "games.",
+
+                                          "Select the developer features.\n\n"
+                                          "\t* 'Off' disables exception handlers.\n"
+                                          "\t* 'ErrDisp' displays debug info\n"
                                           "on the 'An error has occurred' screen.\n"
-                                          "'UNITINFO' makes the console be always\n"
+                                          "\t* 'UNITINFO' makes the console be always\n"
                                           "detected as a development unit (which\n"
                                           "breaks online features and Amiibos\n"
-                                          "but enhances some dev apps).\n"
-                                          "'Off' disables exception handlers\n"
-                                          "in FIRM",
-#endif
+                                          "but enhances some dev apps).",
+
                                           "If enabled SysNAND will be launched on\n"
                                           "boot. Otherwise, an EmuNAND will.\n"
-                                          "Hold L on boot to switch NAND.\n"
+                                          "Hold L on boot to override.\n"
                                           "To use a different EmuNAND from the\n"
                                           "default, hold a directional pad button\n"
                                           "(Up/Right/Down/Left equal EmuNANDs\n"
-                                          "1/2/3/4)",
+                                          "1/2/3/4).",
 
                                           "If enabled, when holding R on boot\n"
                                           "EmuNAND will be booted with the\n"
-                                          "SysNAND FIRM. Otherwise, SysNAND will\n"
-                                          "be booted with an EmuNAND FIRM.\n"
+                                          "SysNAND FIRM.\n\n"
+                                          "Otherwise, SysNAND will be booted\n"
+                                          "with an EmuNAND FIRM.\n\n"
                                           "To use a different EmuNAND from the\n"
                                           "default, hold a directional pad button\n"
                                           "(Up/Right/Down/Left equal EmuNANDs\n"
-                                          "1/2/3/4)",
+                                          "1/2/3/4), also add A if you have\n"
+                                          "a matching payload.",
+
+                                          "Enables the loading of kernel modules\n"
+                                          "from /puma/sysmodules/*.cxi.\n\n"
+                                          "Kernels (and cetk, if encrypted)\n"
+										  "will also be loaded from /puma/\n"
+										  "firmware{|_twl|_agb|_safe}.bin and\n" 
+										  "cetk{|_twl|_agb|_safe}"),
+
+                                          "Activate built-in pathchanger.\n\n"
+                                          "(check the Readme for instructions)",
 
                                           "Enable overriding the region and\n"
                                           "language configuration and the usage\n"
                                           "of patched code binaries for specific\n"
-                                          "games.\n"
+                                          "games.\n\n"
                                           "Also makes certain DLCs for\n"
-                                          "out-of-region games work.\n"
+                                          "out-of-region games work.\n\n"
                                           "Country spoofing will also be enabled.",
 
                                           "Show the currently booted NAND in\n"
@@ -158,12 +176,13 @@ void configMenu(bool oldPinStatus)
 										  "(Breaks bad ROMs with an incorrect\n"
 										  "Nintendo logo)",
 
-                                          "If enabled, the splash screen will be\n"
-                                          "displayed before launching payloads,\n"
-                                          "otherwise it will be displayed\n"
-                                          "afterwards.\n"
-                                          "Intended for splash screens that\n"
-                                          "display button hints.",
+                                          "Disable SVC, service, archive and ARM9\n"
+                                          "exheader access checks.\n\n"
+                                          "The service and archive patches\n"
+                                          "don't work on New 3DS FIRMs between\n"
+                                          "9.3 and 10.4.\n\n"
+                                          "Only change this if you know what you\n"
+                                          "are doing!",
 										  
 										  "Make foreign titles visible on HOME\n"//regionfree
                                           "(and block card updates).\n"
@@ -188,10 +207,6 @@ void configMenu(bool oldPinStatus)
                                           "instead of HOME.\n"
 										  "Requires TestMenu to be installed,\n"
 										  "and for best results, DevMenu too"
-#ifdef DEV
-                                        , "Disable SVC, service, archive and ARM9\n"
-                                          "exheader access checks"
-#endif
                                        };
 
     struct multiOption {
@@ -201,11 +216,10 @@ void configMenu(bool oldPinStatus)
     } multiOptions[] = {
         { .posXs = {19, 24, 29, 34} },
         { .posXs = {21, 26, 31, 36} },
+        { .posXs = {12, 22, 31, 0}  },
         { .posXs = {14, 19, 24, 29} },
-        { .posXs = {17, 26, 32, 44} }
-#ifdef DEV
-      , { .posXs = {23, 35, 43, 0} }
-#endif
+        { .posXs = {17, 26, 32, 44} },
+        { .posXs = {19, 30, 42, 0}  }
     };
 
     //Calculate the amount of the various kinds of options and pre-select the first single one
@@ -319,7 +333,7 @@ void configMenu(bool oldPinStatus)
                 drawString(singleOptionsText[singleSelected], true, 10, singleOptions[singleSelected].posY, COLOR_RED);
             }
 
-            clearScreens(false, true);
+            clearScreens(false, true, false);
             drawString(optionsDescription[selectedOption], false, 10, 10, COLOR_WHITE);
         }
         else
@@ -351,8 +365,6 @@ void configMenu(bool oldPinStatus)
         }
     }
 
-    u32 oldPinLength = MULTICONFIG(PIN);
-
     //Preserve the last-used boot options (first 9 bits)
     configData.config &= 0x1FF;
 
@@ -362,7 +374,9 @@ void configMenu(bool oldPinStatus)
     for(u32 i = 0; i < singleOptionsAmount; i++)
         configData.config |= (singleOptions[i].enabled ? 1 : 0) << (i + 21);
 
-    if(MULTICONFIG(PIN) != 0) newPin(oldPinStatus && MULTICONFIG(PIN) == oldPinLength);
+    u32 newPinMode = MULTICONFIG(PIN);
+
+    if(newPinMode != 0) newPin(oldPinStatus && newPinMode == oldPinMode, newPinMode);
     else if(oldPinStatus) fileDelete(PIN_PATH);
 
     //Wait for the pressed buttons to change

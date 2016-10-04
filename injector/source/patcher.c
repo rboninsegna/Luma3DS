@@ -67,36 +67,62 @@ static bool secureInfoExists(void)
     return exists;
 }
 
-static int loadCustomVerString(u16 *out, u32 *verStringSize)
+static void loadCustomVerString(u16 *out, u32 *verStringSize, u32 currentNand)
 {
-    static const char path[] = "/puma/customversion.txt";
+    static const char *paths[] = { "/puma/customversion_sys.txt",
+                                   "/puma/customversion_emu.txt",
+                                   "/puma/customversion_emu2.txt",
+                                   "/puma/customversion_emu3.txt",
+                                   "/puma/customversion_emu4.txt" };
 
     IFile file;
-    Result ret = fileOpen(&file, ARCHIVE_SDMC, path, FS_OPEN_READ);
-    if(R_SUCCEEDED(ret))
+
+    if(R_SUCCEEDED(fileOpen(&file, ARCHIVE_SDMC, paths[currentNand], FS_OPEN_READ)))
     {
         u64 fileSize;
-        ret = IFile_GetSize(&file, &fileSize);
 
-        if(R_SUCCEEDED(ret) && fileSize <= 19)
+        if(R_SUCCEEDED(IFile_GetSize(&file, &fileSize)) && fileSize <= 62)
         {
-            *verStringSize = (u32)fileSize;
-            u8 buf[19];
+            u8 buf[fileSize];
             u64 total;
 
-            ret = IFile_Read(&file, &total, buf, *verStringSize);
+            if(R_SUCCEEDED(IFile_Read(&file, &total, buf, fileSize)))
+            {
+                static const u8 bom[] = {0xEF, 0xBB, 0xBF};
+                u32 finalSize = 0;
 
-            for(u32 i = 0; i < *verStringSize; i++)
-                ((u8 *)out)[2 * i] = buf[i];
+                //Convert from UTF-8 to UTF-16 (Nintendo doesn't support 4-byte UTF-16, so 4-byte UTF-8 is unsupported)
+                for(u32 increase, fileSizeTmp = (u32)fileSize, i = (fileSizeTmp > 2 && memcmp(buf, bom, 3) == 0) ? 3 : 0;
+                    i < fileSizeTmp && finalSize < 19; i += increase, finalSize++)
+                {
+                    if((buf[i] & 0x80) == 0 && !(buf[i] == 0xA || buf[i] == 0xD))
+                    {
+                        increase = 1;
+                        out[finalSize] = (u16)buf[i];
+                    }
+                    else if((buf[i] & 0xE0) == 0xC0 && i + 1 < fileSizeTmp && (buf[i + 1] & 0xC0) == 0x80)
+                    {
+                        increase = 2;
+                        out[finalSize] = (u16)(((buf[i] & 0x1F) << 6) | (buf[i + 1] & 0x3F));
+                    }
+                    else if((buf[i] & 0xF0) == 0xE0 && i + 2 < fileSizeTmp && (buf[i + 1] & 0xC0) == 0x80 && (buf[i + 2] & 0xC0) == 0x80)
+                    {
+                        increase = 3;
+                        out[finalSize] = (u16)(((buf[i] & 0xF) << 12) | ((buf[i + 1] & 0x3F) << 6) | (buf[i + 2] & 0x3F));
+                    }
+                    else break;
+                }
 
-            *verStringSize *= 2;
+                if(finalSize > 0)
+                {
+                    if(finalSize > 5 && finalSize < 19) out[finalSize++] = 0;
+                    *verStringSize = finalSize * 2;
+                }
+            }
         }
-        else ret = -1;
 
         IFile_Close(&file);
     }
-
-    return ret;
 }
 
 static void loadTitleCodeSection(u64 progId, u8 *code, u32 size)
@@ -108,24 +134,22 @@ static void loadTitleCodeSection(u64 progId, u8 *code, u32 size)
     progIdToStr(path + 35, progId);
 
     IFile file;
-    Result ret = fileOpen(&file, ARCHIVE_SDMC, path, FS_OPEN_READ);
 
-    if(R_SUCCEEDED(ret))
+    if(R_SUCCEEDED(fileOpen(&file, ARCHIVE_SDMC, path, FS_OPEN_READ)))
     {
         u64 fileSize;
-        ret = IFile_GetSize(&file, &fileSize);
 
-        if(R_SUCCEEDED(ret) && fileSize <= size)
+        if(R_SUCCEEDED(IFile_GetSize(&file, &fileSize)) && fileSize <= size)
         {
             u64 total;
-            ret = IFile_Read(&file, &total, code, fileSize);
+            IFile_Read(&file, &total, code, fileSize);
         }
 
         IFile_Close(&file);
     }
 }
 
-static int loadTitleLocaleConfig(u64 progId, u8 *regionId, u8 *languageId)
+static void loadTitleLocaleConfig(u64 progId, u8 *regionId, u8 *languageId)
 {
     /* Here we look for "/puma/locales/[u64 titleID in hex, uppercase].txt"
        If it exists it should contain, for example, "EUR IT" */
@@ -134,22 +158,19 @@ static int loadTitleLocaleConfig(u64 progId, u8 *regionId, u8 *languageId)
     progIdToStr(path + 29, progId);
 
     IFile file;
-    Result ret = fileOpen(&file, ARCHIVE_SDMC, path, FS_OPEN_READ);
-    if(R_SUCCEEDED(ret))
+
+    if(R_SUCCEEDED(fileOpen(&file, ARCHIVE_SDMC, path, FS_OPEN_READ)))
     {
         u64 fileSize;
-        ret = IFile_GetSize(&file, &fileSize);
 
-        if(R_SUCCEEDED(ret) && fileSize == 6)
+        if(R_SUCCEEDED(IFile_GetSize(&file, &fileSize)) && fileSize > 5 && fileSize < 9)
         {
-            char buf[6];
+            char buf[fileSize];
             u64 total;
 
-            ret = IFile_Read(&file, &total, buf, 6);
-
-            if(R_SUCCEEDED(ret))
+            if(R_SUCCEEDED(IFile_Read(&file, &total, buf, fileSize)))
             {
-                for(u32 i = 0; i < 7; ++i)
+                for(u32 i = 0; i < 7; i++)
                 {
                     static const char *regions[] = {"JPN", "USA", "EUR", "AUS", "CHN", "KOR", "TWN"};
 
@@ -159,8 +180,8 @@ static int loadTitleLocaleConfig(u64 progId, u8 *regionId, u8 *languageId)
                         break;
                     }
                 }
-        
-                for(u32 i = 0; i < 12; ++i)
+
+                for(u32 i = 0; i < 12; i++)
                 {
                     static const char *languages[] = {"JP", "EN", "FR", "DE", "IT", "ES", "ZH", "KO", "NL", "PT", "RU", "TW"};
 
@@ -172,12 +193,9 @@ static int loadTitleLocaleConfig(u64 progId, u8 *regionId, u8 *languageId)
                 }
             }
         }
-        else ret = -1;
 
         IFile_Close(&file);
     }
-
-    return ret;
 }
 
 static int loadCountryConfig(char *countryString)
@@ -422,7 +440,7 @@ void patchCode(u64 progId, u8 *code, u32 size)
                 0xE0, 0x1E, 0xFF, 0x2F, 0xE1, 0x01, 0x01
             };
 
-            u8 mostRecentFpdVer = 0x07;
+            u8 mostRecentFpdVer = 7;
 
             u8 *fpdVer = memsearch(code, fpdVerPattern, size, sizeof(fpdVerPattern));
 
@@ -444,61 +462,42 @@ void patchCode(u64 progId, u8 *code, u32 size)
             {
                 static const u16 verPattern[] = u"Ver.";
                 static u16 *verString;
-                u32 verStringSize;
+                u32 verStringSize = 0;
+                u32 currentNand = BOOTCFG_NAND;
 
-                u16 customVerString[19] = {0};
-                if(R_SUCCEEDED(loadCustomVerString(customVerString, &verStringSize))) verString = customVerString;
+                u16 customVerString[19];
+                loadCustomVerString(customVerString, &verStringSize, currentNand);
+
+                if(verStringSize != 0) verString = customVerString;
                 else
                 {
                     verStringSize = 8;
-                    u32 currentNand = BOOTCFG_NAND,
-                        currentFirm = BOOTCFG_FIRM;
-                    bool matchingFirm = (currentFirm != 0) == (currentNand != 0);
+                    u32 currentFirm = BOOTCFG_FIRM;
 
-                    static u16 verStringEmu[] = u"Emu ",
-                               verStringEmuSys[] = u"Em S",
-                               verStringSysEmu[] = u"SyE ";
+                    static u16 *verStringsNands[] = { u" Sys",
+                                                      u" Emu",
+                                                      u"Emu2",
+                                                      u"Emu3",
+                                                      u"Emu4" },
 
-                    switch(currentNand)
-                    {
-                        case 1:
-                            verString = matchingFirm ? u" Emu" : u"EmuS";
-                            break;
-                        case 2:
-                        case 3:
-                        case 4:
-                        {
-                            if(matchingFirm)
-                            {
-                                verStringEmu[3] = '0' + currentNand;
-                                verString = verStringEmu;
-                            }
-                            else
-                            {
-                                verStringEmuSys[2] = '0' + currentNand;
-                                verString = verStringEmuSys;
-                            }
-                            break;
-                        }
-                        default:
-                            if(matchingFirm) verString = u" Sys";
-                            else
-                            {
-                                if(currentFirm == 1) verString = u"SysE";
-                                else
-                                {
-                                    verStringSysEmu[3] = '0' + currentFirm;
-                                    verString = verStringSysEmu;
-                                }
-                            }
-                            break;
-                    }
+                               *verStringsEmuSys[] = { u"EmuS",
+                                                       u"Em2S",
+                                                       u"Em3S",
+                                                       u"Em4S" },
+
+                               *verStringsSysEmu[] = { u"SysE",
+                                                       u"SyE2",
+                                                       u"SyE3",
+                                                       u"SyE4" };
+
+                    verString = (currentFirm != 0) == (currentNand != 0) ? verStringsNands[currentNand] :
+                                                                           (!currentNand ? verStringsSysEmu[currentFirm - 1] : verStringsEmuSys[currentNand - 1]);
                 }
 
                 //Patch Ver. string
                 patchMemory(code, size,
                     verPattern,
-                    sizeof(verPattern) - sizeof(u16), 0,
+                    sizeof(verPattern) - 2, 0,
                     verString,
                     verStringSize, 1
                 );
@@ -593,10 +592,10 @@ void patchCode(u64 progId, u8 *code, u32 size)
 				if(CONFIG(SECUREINFO))
 					patchMemory(code, size, 
 						secureinfoFilenamePattern, 
-						sizeof(secureinfoFilenamePattern) - sizeof(u16),
-						sizeof(secureinfoFilenamePattern) - sizeof(u16), 
+						sizeof(secureinfoFilenamePattern) - 2,
+						sizeof(secureinfoFilenamePattern) - 2, 
 						secureinfoFilenamePatch, 
-						sizeof(secureinfoFilenamePatch) - sizeof(u16), 2
+						sizeof(secureinfoFilenamePatch) - 2, 2
 					);
             }
 
@@ -645,10 +644,9 @@ void patchCode(u64 progId, u8 *code, u32 size)
             break;
         }
 
-#ifdef DEV
         case 0x0004003000008A02LL: // ErrDisp
         {
-            if(MULTICONFIG(DEVOPTIONS) == 0)
+            if(MULTICONFIG(DEVOPTIONS) == 1)
             {
                 static const u8 unitinfoCheckPattern1[] = { 
                     0x14, 0x00, 0xD0, 0xE5, 0xDB
@@ -679,14 +677,11 @@ void patchCode(u64 progId, u8 *code, u32 size)
 
             break;
         }
-#endif
 
         default:
             if(CONFIG(USELANGEMUANDCODE))
             {
-                u32 tidHigh = (progId & 0xFFFFFFF000000000LL) >> 0x24;
-
-                if(tidHigh == 0x0004000)
+                if((u32)((progId & 0xFFFFFFF000000000LL) >> 0x24) == 0x0004000)
                 {
                     //External .code section loading
                     loadTitleCodeSection(progId, code, size);
@@ -694,11 +689,11 @@ void patchCode(u64 progId, u8 *code, u32 size)
                     //Language emulation
                     u8 regionId = 0xFF,
                        languageId = 0xFF;
+                    loadTitleLocaleConfig(progId, &regionId, &languageId);
 
-                    if(R_SUCCEEDED(loadTitleLocaleConfig(progId, &regionId, &languageId)))
+                    if(regionId != 0xFF || regionId != 0xFF)
                     {
                         u32 CFGUHandleOffset;
-
                         u8 *CFGU_GetConfigInfoBlk2_endPos = getCfgOffsets(code, size, &CFGUHandleOffset);
 
                         if(CFGU_GetConfigInfoBlk2_endPos != NULL)

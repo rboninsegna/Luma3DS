@@ -22,7 +22,8 @@
 
 /*
 *   Crypto libs from http://github.com/b1l1s/ctr
-*   ARM9Loader code originally adapted from https://github.com/Reisyukaku/ReiNand/blob/228c378255ba693133dec6f3368e14d386f2cde7/source/crypto.c#L233
+*   kernel9Loader code originally adapted from https://github.com/Reisyukaku/ReiNand/blob/228c378255ba693133dec6f3368e14d386f2cde7/source/crypto.c#L233
+*   decryptNusFirm code adapted from https://github.com/mid-kid/CakesForeveryWan/blob/master/source/firm.c
 */
 
 #pragma once
@@ -101,12 +102,14 @@
 #define SHA_1_HASH_SIZE     (160 / 8)
 
 extern u32 emuOffset;
-extern bool isN3DS, isDevUnit;
+extern bool isN3DS, isDevUnit, isA9lh;
 extern FirmwareSource firmSource;
 
 void ctrNandInit(void);
 u32 ctrNandRead(u32 sector, u32 sectorCount, u8 *outbuf);
-void setRSAMod0DerivedKeys(void);
+void set6x7xKeys(void);
 void decryptExeFs(u8 *inbuf);
-void arm9Loader(u8 *arm9Section);
-void computePinHash(u8 *out, u8 *in);
+void decryptNusFirm(const u8 *inbuf, u8 *outbuf, u32 ncchSize);
+void kernel9Loader(u8 *arm9Section);
+void computePinHash(u8 *outbuf, const u8 *inbuf);
+void restoreShaHashBackup(void);

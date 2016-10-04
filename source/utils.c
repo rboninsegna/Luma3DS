@@ -29,8 +29,8 @@
 
 u32 waitInput(void)
 {
-    u32 pressedKey = 0,
-        key;
+    bool pressedKey = false;
+    u32 key;
 
     //Wait for no keys to be pressed
     while(HID_PAD);
@@ -46,7 +46,7 @@ u32 waitInput(void)
         for(u32 i = 0x13000; i > 0; i--)
         {
             if(key != HID_PAD) break;
-            if(i == 1) pressedKey = 1;
+            if(i == 1) pressedKey = true;
         }
     }
     while(!pressedKey);
@@ -56,29 +56,28 @@ u32 waitInput(void)
 
 void mcuReboot(void)
 {
-    if(!isFirmlaunch && PDN_GPU_CNT != 1) clearScreens(true, true);
+    if(!isFirmlaunch && PDN_GPU_CNT != 1) clearScreens(true, true, false);
 
-    flushEntireDCache(); //Ensure that all memory transfers have completed and that the data cache has been flushed
+    //Ensure that all memory transfers have completed and that the data cache has been flushed
+    flushEntireDCache();
 
-    i2cWriteRegister(I2C_DEV_MCU, 0x20, 1 << 2);
+    i2cWriteRegister(I2C_DEV_MCU, 0x20, 1 << 1);
     while(true);
 }
 
 void mcuPowerOff(void)
 {
-    if(!isFirmlaunch && PDN_GPU_CNT != 1) clearScreens(true, true);
+    if(!isFirmlaunch && PDN_GPU_CNT != 1) clearScreens(true, true, false);
 
-    flushEntireDCache(); //Ensure that all memory transfers have completed and that the data cache has been flushed
+    //Ensure that all memory transfers have completed and that the data cache has been flushed
+    flushEntireDCache();
     
     i2cWriteRegister(I2C_DEV_MCU, 0x20, 1 << 0);
     while(true);
 }
 
-//TODO: add support for TIMER IRQ
 static inline void startChrono(u64 initialTicks)
 {
-    //Based on a NATIVE_FIRM disassembly
-
     REG_TIMER_CNT(0) = 0; //67MHz
     for(u32 i = 1; i < 4; i++) REG_TIMER_CNT(i) = 4; //Count-up
 
@@ -113,6 +112,8 @@ void chrono(u32 seconds)
 
 void error(const char *message)
 {
+    if(isFirmlaunch) mcuReboot();
+
     initScreens();
 
     drawString("An error has occurred:", true, 10, 10, COLOR_RED);

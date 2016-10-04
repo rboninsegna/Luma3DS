@@ -29,7 +29,7 @@
 #define BOOTCONFIG(a, b) ((configData.config >> a) & b)
 
 #define CONFIG_PATH         "/puma/config.bin"
-#define CONFIG_VERSIONMAJOR 10
+#define CONFIG_VERSIONMAJOR 11
 #define CONFIG_VERSIONMINOR 0
 
 #define BOOTCFG_NAND         BOOTCONFIG(0, 7)
@@ -42,28 +42,26 @@ enum multiOptions
 {
     DEFAULTEMU = 0,
     BRIGHTNESS,
+    SPLASH,
     PIN,
-    NEWCPU
-#ifdef DEV
-  , DEVOPTIONS
-#endif
+    NEWCPU,
+    DEVOPTIONS
 };
 
 enum singleOptions
 {
     AUTOBOOTSYS = 0,
     USESYSFIRM,
+    LOADSDFIRMSANDMODULES,
+    USECUSTOMPATH,
     USELANGEMUANDCODE,
     PATCHVERSTRING,
     SHOWGBABOOT,
-    PAYLOADSPLASH,
+	PATCHACCESS,
 	REGIONFREE,
 	PREVENTUPDATES,
 	SECUREINFO,
 	TESTMENU
-#ifdef DEV
-  , PATCHACCESS
-#endif
 };
 
 typedef struct __attribute__((packed))
@@ -86,4 +84,4 @@ extern bool isN3DS;
 
 bool readConfig(void);
 void writeConfig(ConfigurationStatus needConfig, u32 configTemp);
-void configMenu(bool oldPinStatus);
+void configMenu(bool oldPinStatus, u32 oldPinMode);

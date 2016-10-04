@@ -35,8 +35,8 @@
 bool loadSplash(void)
 {
 
-    const char *topSplashPath = "/puma/splash.bin",
-               *bottomSplashPath = "/puma/splashbottom.bin";
+    const char *topSplashPath[]    = "/puma/splash.bin",
+               *bottomSplashPath[] = "/puma/splashbottom.bin";
 
     bool isTopSplashValid = getFileSize(topSplashPath) == SCREEN_TOP_FBSIZE,
          isBottomSplashValid = getFileSize(bottomSplashPath) == SCREEN_BOTTOM_FBSIZE;
@@ -46,10 +46,12 @@ bool loadSplash(void)
         return false;
 
     initScreens();
+    clearScreens(true, true, true);
 
+    if(isTopSplashValid) fileRead(fbs[1].top_left, topSplashPath, 0);
+    if(isBottomSplashValid) fileRead(fbs[1].bottom, bottomSplashPath, 0);
 
-    if(isTopSplashValid) fileRead(fb->top_left, topSplashPath, 0);
-    if(isBottomSplashValid) fileRead(fb->bottom, bottomSplashPath, 0);
+    swapFramebuffers(true);
 
     chrono(3);
 
@@ -58,14 +60,14 @@ bool loadSplash(void)
 
 void drawCharacter(char character, bool isTopScreen, u32 posX, u32 posY, u32 color)
 {
-    u8 *select = isTopScreen ? fb->top_left : fb->bottom;
+    u8 *select = isTopScreen ? fbs[0].top_left : fbs[0].bottom;
 
     for(u32 y = 0; y < 8; y++)
     {
         char charPos = font[character * 8 + y];
 
         for(u32 x = 0; x < 8; x++)
-            if((charPos >> (7 - x)) & 1)
+            if(((charPos >> (7 - x)) & 1) == 1)
             {
                 u32 screenPos = (posX * SCREEN_HEIGHT * 3 + (SCREEN_HEIGHT - y - posY - 1) * 3) + x * 3 * SCREEN_HEIGHT;
 
@@ -78,24 +80,32 @@ void drawCharacter(char character, bool isTopScreen, u32 posX, u32 posY, u32 col
 
 u32 drawString(const char *string, bool isTopScreen, u32 posX, u32 posY, u32 color)
 {
-    for(u32 i = 0, line_i = 0; i < strlen(string); i++, line_i++)
-    {
-        if(string[i] == '\n')
+    for(u32 i = 0, line_i = 0; i < strlen(string); i++)
+        switch(string[i])
         {
-            posY += SPACING_Y;
-            line_i = 0;
-            i++;
-        }
-        else if(line_i >= ((isTopScreen ? SCREEN_TOP_WIDTH : SCREEN_BOTTOM_WIDTH) - posX) / SPACING_X)
-        {
-            //Make sure we never get out of the screen
-            posY += SPACING_Y;
-            line_i = 1; //Little offset so we know the same string continues
-            if(string[i] == ' ') i++; //Spaces at the start look weird
-        }
+            case '\n':
+                posY += SPACING_Y;
+                line_i = 0;
+                break;
 
-        drawCharacter(string[i], isTopScreen, posX + line_i * SPACING_X, posY, color);
-    }
+            case '\t':
+                line_i += 2;
+                break;
+
+            default:
+                //Make sure we never get out of the screen
+                if(line_i >= ((isTopScreen ? SCREEN_TOP_WIDTH : SCREEN_BOTTOM_WIDTH) - posX) / SPACING_X)
+                {
+                    posY += SPACING_Y;
+                    line_i = 1; //Little offset so we know the same string continues
+                    if(string[i] == ' ') break; //Spaces at the start look weird
+                }
+
+                drawCharacter(string[i], isTopScreen, posX + line_i * SPACING_X, posY, color);
+
+                line_i++;
+                break;
+        }
 
     return posY;
 }

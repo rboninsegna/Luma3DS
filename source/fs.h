@@ -26,7 +26,7 @@
 
 #define PATTERN(a) a "_*.bin"
 
-extern bool isN3DS;
+extern bool isN3DS, isA9lh;
 
 void mountFs(void);
 u32 fileRead(void *dest, const char *path, u32 maxSize);
@@ -35,7 +35,4 @@ bool fileWrite(const void *buffer, const char *path, u32 size);
 void fileDelete(const char *path);
 void loadPayload(u32 pressed);
 u32 firmRead(void *dest, u32 firmType);
-
-#ifdef DEV
 void findDumpFile(const char *path, char *fileName);
-#endif

@@ -85,11 +85,11 @@ As of 2016-8-1 you'll also need manually compile and install an updated ctrulib,
 Just download its source, `make` it, then replace devKitPro/libctru/* with the project folder you just downloaded and compiled.
 
 You will also need [armips](https://github.com/Kingcom/armips), [bin2c](https://sourceforge.net/projects/bin2c/), and a recent build of [makerom](https://github.com/profi200/Project_CTR) added to your PATH (for example, in devkitARM/bin/).
-For your convenience, here are [Windows](http://www91.zippyshare.com/v/ePGpjk9r/file.html) and [Linux](https://mega.nz/#!uQ1T1IAD!Q91O0e12LXKiaXh_YjXD3D5m8_W3FuMI-hEa6KVMRDQ) builds of armips (thanks to who compiled them!).  
+For your convenience, here are [Windows](http://www91.zippyshare.com/v/ePGpjk9r/file.html) and [Linux](https://mega.nz/#!uQ1T1IAD!Q91O0e12LXKiaXh_YjXD3D5m8_W3FuMI-hEa6KVMRDQ) builds of armips (thanks to who compiled them!).
 
 Then clone the repository recursively with: `git clone --recursive https://github.com/rboninsegna/Puma33DS.git`
 
-Finally just run `make a9lh` and everything should work!
+Finally just run `make` and everything should work!
 
 You can then find arm9loaderhax.bin in the 'out' folder.
 

@@ -16,28 +16,25 @@ enum multiOptions
 {
     DEFAULTEMU = 0,
     BRIGHTNESS,
+    SPLASH,
     PIN,
-    NEWCPU
-#ifdef DEV
-  , DEVOPTIONS
-#endif
+    NEWCPU,
+    DEVOPTIONS
 };
 
 enum singleOptions
 {
     AUTOBOOTSYS = 0,
     USESYSFIRM,
+    LOADSDFIRMSANDMODULES,
+    USECUSTOMPATH,
     USELANGEMUANDCODE,
     PATCHVERSTRING,
     SHOWGBABOOT,
-    PAYLOADSPLASH,
+	PATCHACCESS,
 	REGIONFREE,
 	PREVENTUPDATES,
 	SECUREINFO,
 	TESTMENU
-#ifdef DEV
-  , PATCHACCESS
-#endif
 };
-
 void patchCode(u64 progId, u8 *code, u32 size);
